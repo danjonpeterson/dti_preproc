@@ -6,7 +6,7 @@ tmpdir=temp-unwarp_bupbdown         # name of directory for intermediate files
 LF=$tmpdir/unwarp_bupbdown.log      # default log filename
 outdir=.                            # put output in PWD
 generate_report=y                   # generate a report 
-reportdir=$tmpdir/report    # directory for html report
+reportdir=$tmpdir/report            # directory for html report
 configfile=b02b0.cnf                # default config file. actually lives in ${FSLDIR}/etc/flirtsch/
 scriptdir=`dirname $0`
 
@@ -18,21 +18,24 @@ usage_exit() {
   Usage:   
   
     $CMD -k <img> -a <acqpars file> -M <img> [option]
-  
+ 
+    Required:  
     -k <img>          : 4D DTI image
     -a <text>         : eddy/topup acquisition parameters file
-    -M <img>          : mask file 
+    -M <img>          : mask file
+
+     and either/or
     -b <text>         : b-value file
+    -n <number>       : number of S0 volumes
 
-
-    Option: 
+    Optional: 
     -s          : no not generate HTML report
     -o          : output directory (defaut: current working directory)
     -r          : report directory
     -c          : config file
 
 example:
-unwarp_bupbdown.sh -k diffusion_data.nii.gz -a acqpars.txt -M brain_mask.nii.gz 
+unwarp_bupbdown.sh -k diffusion_data.nii.gz -a acqpars.txt -M brain_mask.nii.gz -b bval.txt
 
 EOF
     exit 1;
@@ -72,7 +75,7 @@ test_varfile (){
 #------------- Parse Parameters  --------------------#
 [ "$6" = "" ] && usage_exit
 
-while getopts k:a:M:so:r:c:b: OPT
+while getopts k:a:M:so:r:c:b:n: OPT
  do
  case "$OPT" in 
    "k" ) dti="$OPTARG";; 
@@ -83,6 +86,7 @@ while getopts k:a:M:so:r:c:b: OPT
    "r" ) reportdir="$OPTARG";;
    "c" ) configfile="$OPTARG";;
    "b" ) bval="$OPTARG";;
+   "n" ) S0_count="$OPTARG";;
     * )  usage_exit;;
  esac
 done;
@@ -104,20 +108,19 @@ if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
 mkdir $tmpdir
 touch $LF
 
-## assume the first two images are the S0's [TODO: take args]
-s0_count=`cat $bval | tr ' ' '\n' | grep -c ^0`
-T fslroi $dti $tmpdir/S0_images 0 $s0_count
+#count number of S0 volumes if not supplied
+if [ -z "$S0_count" ]; then
+ S0_count=`cat $bval | tr ' ' '\n' | grep -c ^0`
+fi
+
+T fslroi $dti $tmpdir/S0_images 0 $S0_count
 
 ## do the thing
 T topup --imain=$tmpdir/S0_images --datain=$acqparsfile --config=$configfile --out=$tmpdir/topup_out --fout=$tmpdir/field_est --iout=$tmpdir/unwarped_S0_images --verbose
 
-## apply the warp to the brain mask
-##T applytopup --imain=$mask --topup=$tmpdir/topup_out --datain=$acqparsfile --inindex=1 --out=$tmpdir/unwarped_brain_mask_raw --method=jac
 
-##T fslmaths $tmpdir/unwarped_brain_mask_raw -thr 0.8 -bin $tmpdir/unwarped_brain_mask
 T fslmaths $tmpdir/unwarped_S0_images -Tmean $tmpdir/avg_unwarped_S0
 T bet $tmpdir/avg_unwarped_S0 $tmpdir/unwarped_brain -m -f 0.2
-
 
 
 #--------------- copying results to output directory ------------#

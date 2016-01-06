@@ -1,7 +1,7 @@
 #! /bin/sh
 
 # example usage
-# unwarp_bupbdown_report.sh -t temp-unwarp_fieldmap -r report-unwarp_fieldmap 
+# unwarp_bupbdown_report.sh -t temp-unwarp_fieldmap -r report-unwarp_fieldmap [-n 6]
 
 #---------variables---------#
 tmpdir=temp-unwarp_bupbdown                 # name of directory for intermediate files
@@ -17,7 +17,7 @@ usage_exit() {
 
   Usage:   
   
-    $CMD -t <directory with intermediade files from unwarp_bupbdown> -r <directory to put the generated reports>
+    $CMD -t <directory with intermediade files from unwarp_bupbdown> -r <directory to put the generated reports> 
 
 EOF
     exit 1;
@@ -42,7 +42,7 @@ T () {
 
 #------------- Parse Parameters  --------------------#
 
-while getopts t:r:s:o: OPT
+while getopts t:r:s:o:n: OPT
  do
  case "$OPT" in 
    "t" ) tmpdir="$OPTARG";; 
@@ -72,18 +72,12 @@ echo "    force_captions: TRUE" >> ${RF}.Rmd
 echo "---" >> ${RF}.Rmd
 
 # warped S0s gif
-T fslsplit $tmpdir/S0_images.nii.gz $reportdir/S0_images_ -t
-T $SCRIPTDIR/image_to_gif.sh $reportdir/S0_images_0000.nii.gz $reportdir/S0_1.gif
-T $SCRIPTDIR/image_to_gif.sh $reportdir/S0_images_0001.nii.gz $reportdir/S0_2.gif
-T whirlgif -o $reportdir/native_S0s.gif -loop -time 50 $reportdir/S0_1.gif $reportdir/S0_2.gif
+T $SCRIPTDIR/image_to_movie.sh $tmpdir/S0_images.nii.gz $reportdir/native_S0s.gif
 echo "## Native, warped S0 image " >> ${RF}.Rmd 
 echo "![](native_S0s.gif) \n" >> ${RF}.Rmd
 
 # unwarped B0s gif
-T fslsplit $tmpdir/unwarped_S0_images.nii.gz $reportdir/unwarped_S0_images_ -t
-T $SCRIPTDIR/image_to_gif.sh $reportdir/unwarped_S0_images_0000.nii.gz $reportdir/uw_S0_1.gif
-T $SCRIPTDIR/image_to_gif.sh $reportdir/unwarped_S0_images_0001.nii.gz $reportdir/uw_S0_2.gif
-T whirlgif -o $reportdir/unwarped_S0s.gif -loop -time 50 $reportdir/uw_S0_1.gif $reportdir/uw_S0_2.gif
+T $SCRIPTDIR/image_to_movie.sh $tmpdir/unwarped_S0_images.nii.gz $reportdir/unwarped_S0s.gif
 echo "## Unwarped S0 image " >> ${RF}.Rmd 
 echo "![](unwarped_S0s.gif) \n" >> ${RF}.Rmd
 

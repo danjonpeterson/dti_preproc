@@ -14,13 +14,14 @@ input=$1
 output=$2
 
 tmpdir=`mktemp -d`
+SCRIPTDIR=`dirname $0`
 
 echo splitting images
 fslsplit $input $tmpdir/volume_ -t
 
 echo making individual gifs
 for s in $tmpdir/volume*.nii.gz ; do 
-  image_to_gif.sh $s ${s}.gif
+  $SCRIPTDIR/image_to_gif.sh $s ${s}.gif
 done
 
 echo making the movie
