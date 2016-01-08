@@ -15,7 +15,6 @@ bval=bvals.txt
 mask=MDW_brain_mask.nii.gz
 outdir=.
 dwi_count=64
-s0_count=2
 generate_report=y                   # generate a report 
 reportdir=$tmpdir/report            # directory for html report
 scriptdir=`dirname $0`
@@ -87,7 +86,7 @@ while getopts k:b:r:m:o:l4n OPT
  esac
 done;
 
-
+## make output directory
 mkdir -p $outdir
 
 
@@ -96,13 +95,11 @@ if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
 mkdir $tmpdir
 touch $LF
 
-## make output directory
-mkdir $outdir
 
 dtidim4=`fslval $data dim4`
 s0_count=`cat $bval | tr ' ' '\n' | grep -c ^0`
 dwi_count=`expr $dtidim4 - $s0_count`
-
+total_count=`echo $dwi_count + $s0_count | bc`
 
 if [ "$method" = "fsl" ] ; then
  T dtifit -k $data -o $tmpdir/dti_D -b bvals -r bvecs -m $tmpdir/ED_D_example_dti_brain_mask --sse
@@ -139,7 +136,6 @@ if [ "$method" = "restore" ] ; then
 
  T -r "cat $tmpdir/outlier_map.Bbyte | voxel2image -inputdatatype byte -components $dwi_count -header $data -outputroot $tmpdir/outlier_map_"
 
-total_count=`echo $dwi_count + $s0_count | bc`
 # T -r "cat $tmpdir/residual_map.Bdouble | voxel2image -inputdatatype double -components $total_count -header $data -outputroot $tmpdir/residual_map_"
 
  T -r "cat $tmpdir/restore_tensor.Bfloat | dteig | voxel2image -components 12 -inputdatatype double -header $data -outputroot $tmpdir/eigsys_ "
@@ -161,7 +157,14 @@ total_count=`echo $dwi_count + $s0_count | bc`
  T fslmerge -t $tmpdir/V2 $tmpdir/eigsys_0006.nii.gz $tmpdir/eigsys_0007.nii.gz $tmpdir/eigsys_0008.nii.gz
  T fslmerge -t $tmpdir/V3 $tmpdir/eigsys_0010.nii.gz $tmpdir/eigsys_0011.nii.gz $tmpdir/eigsys_0012.nii.gz
 
- T fslmerge -t $tmpdir/outlier_map.nii.gz $mask $tmpdir/outlier_map_*.nii.gz
+# pad the outlier map so that it can be overlaid on the diffusion images
+ T imcp $mask $tmpdir/outlier_pad
+ for i in `seq 2 $s0_count`; do
+  T fslmerge -t $tmpdir/outlier_pad.nii.gz $mask $tmpdir/outlier_pad.nii.gz
+ done
+
+
+ T fslmerge -t $tmpdir/outlier_map.nii.gz $tmpdir/outlier_pad.nii.gz $tmpdir/outlier_map_*.nii.gz
 # T fslmerge -t $tmpdir/residual_map.nii.gz $mask $tmpdir/residual_map_*.nii.gz
 
  ## clean up
@@ -176,7 +179,7 @@ fi
  T imcp $tmpdir/fa $tmpdir/md $tmpdir/dxx $tmpdir/dxy $tmpdir/dxz $tmpdir/dyy $tmpdir/dyz $tmpdir/dzz $tmpdir/L1 $tmpdir/L2 $tmpdir/L3 $tmpdir/V1 $tmpdir/V2 $tmpdir/V3 $outdir/
 
 if [ "$generate_report" != "n" ] ; then 
- T $scriptdir/fit_tensor_report.sh -t $tmpdir -r $reportdir -o $outdir -k $data -m $method
+ T $scriptdir/fit_tensor_report.sh -t $tmpdir -r $reportdir -o $outdir -k $data -m $method -n $s0_count
 fi
 
 cp $reportdir/*.html $outdir/

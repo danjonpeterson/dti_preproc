@@ -1,17 +1,17 @@
 #! /bin/sh
 
 #example usage
-#fit_tensor_report.sh -t temp-fit_tensor -r report-fit_tensor -o dti_v2 -k DTI_64.nii.gz -m restore
+#fit_tensor_report.sh -t temp-fit_tensor -r report-fit_tensor -o dti_v2 -k DTI_64.nii.gz -m restore -n 2
 
-#---------variables---------#
+#---------variables and defaults---------#
 tmpdir=temp-fit_tensor                 # name of directory for intermediate files
-reportdir=fit_tensor_report	           # report dir
-logfile_name=fit_tensor_report.log    # Log file 
+reportdir=fit_tensor_report	       # report dir
+logfile_name=fit_tensor_report.log     # Log file 
 method=restore
 outdir=.
 dti=DTI_64.nii.gz
 scriptdir=`dirname $0`
-
+s0_count=2
 
 #----------- Utility Functions ----------#
 usage_exit() {
@@ -21,7 +21,7 @@ usage_exit() {
 
   Usage:   
   
-    $CMD -t <directory with intermediate files from unwarp_fieldmap> -r <directory to put the generated reports> -o <output directory> -k <input 4D dti file> -m <method used>
+    $CMD -t <directory with intermediate files from unwarp_fieldmap> -r <directory to put the generated reports> -o <output directory> -k <input 4D dti file> -m <method used> -n <number of b0 volumes>
   
 
 EOF
@@ -49,7 +49,7 @@ T () {
 
 #------------- Parse Parameters  --------------------#
 
-while getopts t:r:s:o:k:m: OPT
+while getopts t:r:s:o:k:m:n: OPT
  do
  case "$OPT" in 
    "t" ) tmpdir="$OPTARG";; 
@@ -57,6 +57,7 @@ while getopts t:r:s:o:k:m: OPT
    "o" ) outdir="$OPTARG";;
    "k" ) dti="$OPTARG";;
    "m" ) method="$OPTARG";;
+   "n" ) s0_count="$OPTARG";;
     * )  usage_exit;;
  esac
 done;
@@ -100,7 +101,8 @@ zdim=`fslhd $dti | grep ^dim3 | awk '{print $2}'`
 echo "##Outliers across volumes"   >> ${RF}.Rmd
 T fslmaths $tmpdir/outlier_map.nii.gz -Xmean -Ymean -Zmean -mul $xdim -mul $ydim -mul $zdim $reportdir/outlier_ts_avg
 T tsplot $reportdir/tsplot_temp -f $reportdir/outlier_ts_avg.nii.gz -C 0 0 0 $reportdir/outliers_ts.txt
-cat $reportdir/outliers_ts.txt | tail -n +2 > $reportdir/outliers_ts_trim.txt
+
+cat $reportdir/outliers_ts.txt | tail -n +`echo $s0_count+1|bc` > $reportdir/outliers_ts_trim.txt
 T fsl_tsplot -i $reportdir/outliers_ts_trim.txt -o $reportdir/outlier_plot.png -t Outliers -x Volume
 echo "![](outlier_plot.png) \n" >> ${RF}.Rmd
 
