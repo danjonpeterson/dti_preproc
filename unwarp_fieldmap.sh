@@ -12,6 +12,7 @@ reg=1                               # coregister between fieldmap and DTI data
 outdir=.                            # put output in PWD
 generate_report=y                   # generate a report 
 reportdir=$tmpdir/report    # directory for html report
+scriptdir=`dirname $0`
 
 usage_exit() {
       cat <<EOF
@@ -234,7 +235,7 @@ T cp $tmpdir/coregistered_fmap_mag_brain_mask.nii.gz $outdir/unwarped_brain_mask
 
 ## generate report
 if [ "$generate_report" != "n" ] ; then 
- T unwarp_fieldmap_report.sh -t $tmpdir -r $reportdir -s $sl
+ T $scriptdir/unwarp_fieldmap_report.sh -t $tmpdir -r $reportdir -s $sl
 fi
 
 cp $reportdir/*.html $outdir/
