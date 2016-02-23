@@ -1,96 +1,102 @@
 #! /bin/sh
 
-
-#---------variables and defaults---------#
-dti="PARSE ERROR"                   # input DTI file
-dph="PARSE ERROR"                   # B0 phase map
-mag="PARSE ERROR"                   # B0 magnitude image
-bval="PARSE ERROR"                  # b-values file (in FSL format)
-bvec="PARSE ERROR"                  # b-vectors file (in FSL format)
-mask="none"                         # brain mask file
-ud=y                                    # EPI distortion direction (phase-encode direction)
-SL=10                                   # signal loss threshold
-outdir=.
-tmpdir=temp-dti_preprocess_v2           # name of directory for intermediate files
-log_filename=temp-dti_preprocess_v2.log # default log filename
-skip_reslice=n                          # don't combine reslicing
-mc_then_ud=n                            # order of motion correction vs undistortion  
-
-
 usage_exit() {
       cat <<EOF
 
-  Preprocess DTI data
+  Preprocess DTI Data
 
-  Version `echo "$VERSION" | awk '{print $1}'`
+    Examples:  
 
-  Usage:   
+       for fieldmap-based unwarping:
+      dti_preproc.sh -k raw_diffusion.nii.gz -b bval.txt -r bvec.txt -M brain_mask.nii.gz \\
+                     -f fieldmap_phase.nii.gz -m fieldmap_magnitude.nii.gz \\
+                     -p fieldmap_magnitude_brain_mask -e 93.46 -t 0.567
+
+       for blipup-blipbdown based unwarping:
+      dti_preproc.sh -k raw_diffusion.nii.gz -b bval.txt -r bvec.txt -M brain_mask.nii.gz \\
+                     -q acqparams.txt -i index.txt
   
-    $CMD -k <img> -t <num> -e <num> -f <img> -m <img> [option]
-  
-    -k <img>    : DTI 4D data
-    -f <img>    : B0 fieldmap image (radian/sec)
-    -m <img>    : B0 fieldmap magnitude image
-    -b <bvals.txt> : a text file containing a list of b-values
-    -r <bvecs.txt> : a text file containing a list of b-vectors
+    Required:
+    -k <img>      : DTI 4D data
+    -b <bval.txt> : a text file containing a list of b-values 
+                    (fsl format - one line)
+    -r <bvec.txt> : a text file containing a list of b-vectors 
+                    (fsl format - three lines)
+    -M <img>      : mask file 
 
-    Option: 
-    -M <img>    : mask file 
-    -p <img>    : mask for magnitude image
-    -u <x, x-, y, y-, z, or z->  : unwarp direction (default: y)
-    -s <num>    : %signal loss threshold for B0 unwarping (default: 10)
-    -t <num>    : DTI dwell time (ms - default: 0.567) 
-    -e <num>    : DTI TE (ms - default: 93.46)
-    -o <dir>    : output directory (defaut: current working directory)
-    -n          : don't combine transforms to reslice
-    -a          : do motion correction, then epi distortion correction
-    -w          : use topup for epi distortion correction
-    -q <file>   : acqpars file for topup
-    -i <file>   : index file for topup
-    -c <file>   : topup configuration file
+    And either: 
+    -f <img>      : fieldmap image (radian/sec)
+    -m <img>      : fieldmap magnitude image
+    -e <num>      : DTI TE (in ms)
+    -t <num>      : DTI dwell time (in ms) 
+    -p <img>      : mask for magnitude image
 
-example:
+    Or:
+    -q <file>     : acqpars file for topup
+    -i <file>     : index file for topup
 
-for fieldmap-based unwarping:
-dti_preprocess_v2.sh -k DTI_64.nii.gz -f DTI_B0_phase.nii.gz -m DTI_B0_mag.nii.gz -b bvals -r bvecs -M brain_mask.nii.gz -p DTI_B0_mag_brain_mask -a -o preprocessed
+    Optional: 
+    -c <file>     : topup configuration file
 
+    -s <num>      : % signal loss threshold for B0 unwarping (default: 10)
 
+    -o <dir>      : output directory (defaut: current working directory)
+    -E            : don't run the commands, just echo them
+    -F            : fast mode for testing (minimal iterations)
+
+On github: https://github.com/danjonpeterson/dti_preproc.git
 
 EOF
     exit 1;
 }
 
+#---------variables and defaults---------#
+diffusion="PARSE_ERROR_dti"       # input raw diffusion file
+dph="PARSE_ERROR_dph"             # fieldmap phase map
+mag="PARSE_ERROR_mag"             # fieldmap magnitude image
+bval="PARSE_ERROR_bval"           # b-values file (in FSL format)
+bvec="PARSE_ERROR_vec"            # b-vectors file (in FSL format)
+mask="PARSE_ERROR_mask"           # brain mask file
+method="PARSE_ERROR_method"       # topup or fugue
+SL=10                             # signal loss threshold
+outdir=.                          # output directory
+LF=dti_preprocess.log             # default log filename
+mode=normal                       # run mode (normal,fast,echo)
+scriptdir=`dirname $0`            # directory where dti_preproc scripts live
+
+
+
 #------------- parsing parameters ----------------#
+if [ "$6" = "" ]; then usage_exit; fi  #show help message if fewer than six args
 
-
-while getopts k:f:m:b:r:M:u:s:t:e:o:p:nawq:i:c: OPT
+while getopts k:b:r:M:f:m:e:t:p:q:i:c:s:o:EF OPT
  do
  case "$OPT" in 
-   "k" ) dti="$OPTARG";; 
-   "f" ) dph="$OPTARG";;
-   "m" ) mag="$OPTARG";;
+   "k" ) diffusion="$OPTARG";; 
    "b" ) bval="$OPTARG";;
    "r" ) bvec="$OPTARG";;
-   "M" ) mask="$OPTARG";;
+   "M" ) mask="$OPTARG";; 
+   "f" ) dph="$OPTARG"
+         method="fugue";;
+   "m" ) mag="$OPTARG";;
    "p" ) mag_mask="$OPTARG";;  
-   "u" ) ud="$OPTARG";;
-   "s" ) SL="$OPTARG";;
    "t" ) esp="$OPTARG";;  
    "e" ) te="$OPTARG";;
-   "o" ) outdir="$OPTARG";;
-   "n" ) skip_reslice=y;;
-   "a" ) mc_then_ud=y;;
-   "w" ) topup=y;;
-   "q" ) acqparams="$OPTARG";;
+   "q" ) acqparams="$OPTARG"
+         method="topup";;
    "i" ) index="$OPTARG";;
    "c" ) configfile="$OPTARG";;
+   "s" ) SL="$OPTARG";;   
+   "o" ) outdir="$OPTARG";;
+   "E" ) mode=echo;;
+   "F" ) mode=fast;;
     * )  usage_exit;;
  esac
 done;
 
 #------------- Utility functions ----------------#
 
-T () {
+T () {                      # main shell commands are run through here
 
  E=0 
  if [ "$1" = "-e" ] ; then  # just outputting and logging a message with T -e 
@@ -98,79 +104,93 @@ T () {
  fi
  
  cmd="$*"
- echo $* | tee -a $LF       # read the command into the console, and the log file
+ echo $* | tee -a $LF       # echo the command into the console, and the log file
 
- if [ "$E" != "1" ] ; then 
-  $cmd 2>&1 | tee -a $LF    # run the command. read the output into a the log file. Stderr is not directed to the logfile
+ if [ "$E" != "1" ] && [ "$mode" != "echo" ] ; then 
+  $cmd 2>&1 | tee -a $LF    # run the command. redirect the output into the log file. Stderr is not directed to the logfile
  fi
 
- echo  | tee -a $LF         # write an empty line to the console and log file
+ echo | tee -a $LF         # write an empty line to the console and log file
+}
+
+error_exit (){      
+    echo "$1" >&2   # Send message to stderr
+    echo "$1" > $LF # send message to log file
+    exit "${2:-1}"  # Return a code specified by $2 or 1 by default.
+}
+
+test_varimg (){   # test if a string is a valid image file
+    var=$1
+    if [ "x$var" = "x" ]; then test=0; else  test=`imtest $1`; fi
+    echo $test
+}
+
+test_varfile (){  # test if a string is a valid file
+    var=$1
+    if [ "x$var" = "x" ]; then test=0 ; elif [ ! -f $var ]; then test=0; else test=1; fi
+    echo $test
 }
 
 #------------- Setting things up ----------------#
 
-#TODO: verify inputs
-
-LF=$tmpdir/$log_filename
-
-## clear, then make the temporary directory
-if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
-mkdir $tmpdir
+## clear, then make the logfile
+if [ -e $LF ]; then /bin/rm -f $LF ;fi
 touch $LF
 
+## make the output directory
+T mkdir -p $outdir
 
-mkdir $outdir
+if [ "$mode" = "echo" ]; then
+  T -e "Running in echo mode - no actual processing done"
+fi
 
-## make a mask if none given
-if [ "$mask" = "none" ]; then
- T bet $mag $outdir/brain -n -m
- mask="$outdir/brain_mask.nii.gz"
+#------------- verifying inputs ----------------#
+
+
+if [ `test_varimg $diffusion` -eq 0 ]; then
+ error_exit "ERROR: cannot find image for 4D raw diffusion data: $diffusion"
+fi
+
+if [ `test_varfile $bval` -eq 0 ]; then
+ error_exit "ERROR: cannot find b-value file: $bval"
+fi
+
+if [ `test_varfile $bvec` -eq 0 ]; then
+ error_exit "ERROR: cannot find b-vector file: $bvec"
+fi
+
+if [ `test_varimg $mask` -eq 0 ]; then 
+ error_exit "ERROR: cannot find mask image: $mask" 
 fi
 
 #------------- Motion and Distortion correction ----------------#
-
-
-
-if [ "$mc_then_ud" = "n" ]; then
  
- if [ "$topup" = "y" ]; then
+if [ "$method" = "topup" ]; then
 
-  T unwarp_bupbdown.sh -k $dti -a $acqparams -M $mask -c $configfile -o $outdir
+  T -e "Unwarping distortions based on blipup-blipbdown data"
+
+  T $scriptdir/unwarp_bupbdown.sh -k $diffusion -a $acqparams -M $mask -c $configfile -o $outdir
   
-  T motion_correct.sh -k $dti -b $bval -r $bvec -M $mask -m eddy_with_topup -i $index -a $acqparams -t temp-unwarp_bupbdown/topup_out -o $outdir
+  T $scriptdir/motion_correct.sh -k $diffusion -b $bval -r $bvec -M $mask -m eddy_with_topup -i $index -a $acqparams -t temp-unwarp_bupbdown/topup_out -o $outdir
   skip_reslice=y
 
- else
+elif [ "$method" = "fugue" ]; then
 
-  T unwarp_fieldmap.sh -k $dti -f $dph -m $mag -M $mask -o $outdir -s
+  T -e "Unwarping distortions based on an acquired fieldmap"
 
-  T motion_correct.sh -k $outdir/unwarped_$dti -b $bval -r $bvec -o $outdir -M $mask -p $mag_mask -m eddy
+  T $scriptdir/motion_correct.sh -k $diffusion -b $bval -r $bvec -o $outdir -M $mask -m eddy
 
- fi
+  T $scriptdir/unwarp_fieldmap.sh -k $outdir/mc_$diffusion -f $dph -m $mag -M $mask -p $mag_mask -o $outdir -s
+
+  T mv $outdir/unwarped_mc_$diffusion $outdir/mc_unwarped_$diffusion
 
 else
 
-  T motion_correct.sh -k $dti -b $bval -r $bvec -o $outdir -M $mask -m eddy
+  error_exit "ERROR: method \"$method\" is neither topup nor fugue"
 
-  T unwarp_fieldmap.sh -k $outdir/mc_$dti -f $dph -m $mag -M $mask -p $mag_mask -o $outdir -s
-
-  T mv $outdir/unwarped_mc_$dti $outdir/mc_unwarped_$dti
-
-  skip_reslice=y
-fi
-
-
-#------------- Reslicing ----------------------------#
-
-if [ "$skip_reslice" = "n" ]; then
- T -e Doing Reslicing
- T reslice_dti.sh -k $dti -w $outdir/unwarp_warp.nii.gz -t $outdir/dti_ecc.mat -m $mask -o $outdir
-else
- T -e Skipping reslicing
- T cp $outdir/mc_unwarped_$dti $outdir/resliced_$dti
 fi
 
 #-------------- fitting the tensor ------------------#
 
-T fit_tensor.sh -k $outdir/resliced_$dti -b $bval -r $outdir/bvec_ecc -m $outdir/unwarped_`basename $mask` -o $outdir
+T $scriptdir/fit_tensor.sh -k $outdir/resliced_$diffusion -b $bval -r $outdir/bvec_ecc -m $outdir/unwarped_`basename $mask` -o $outdir
 

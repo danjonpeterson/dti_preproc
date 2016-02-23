@@ -86,7 +86,7 @@ echo "__tensor fitting method: $method __\n" >> ${RF}.Rmd
 
 ## FA
 echo "## FA Image "   >> ${RF}.Rmd
-T $scriptdir/image_to_gif.sh $outdir/fa.nii.gz $reportdir/fa.gif
+T $scriptdir/image_to_gif.sh $outdir/FA.nii.gz $reportdir/fa.gif
 echo "![](fa.gif) \n" >> ${RF}.Rmd
 
 if [ "$method" = "restore" ]; then
@@ -125,7 +125,7 @@ echo "__Median noise level across the image: $sigma __ \n"   >> ${RF}.Rmd
 
 ## MD
 echo "## MD Image"   >> ${RF}.Rmd
-T $scriptdir/image_to_gif.sh $outdir/md.nii.gz $reportdir/md.gif
+T $scriptdir/image_to_gif.sh $outdir/MD.nii.gz $reportdir/md.gif
 echo "![](md.gif) \n" >> ${RF}.Rmd
 
 ## S0
