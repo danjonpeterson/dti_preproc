@@ -127,26 +127,24 @@ else
  dtidim4=`fslval $dti dim4`
 fi
 
-if [ "$bvec" = "" ] && [ "$bval" = "" ] ;  then
- test=1
-else
- if [ `test_varfile $bvec` -eq 0 ]; then error_exit "ERROR: no bvecs file specified"; fi
- bvecl=`cat $bvec | awk 'END{print NR}'`; bvecw=`cat $bvec | wc -w`	
- if [ $bvecl != 3 ]; then error_exit "ERROR: bvecs file contains $bvecl lines, it should be 3 lines, each for x, y, z"; fi
- if [ "$bvecw" != "`expr 3 \* $dtidim4`" ]; then error_exit "ERROR: bvecs file contains $bvecw words, it should be 3 x $dtidim4 words"; fi
- if [ `test_varfile $bval` -eq 0 ]; then error_exit "ERROR: no bvals file specified"; fi
- bvall=`cat $bval | awk 'END{print NR}'`; bvalw=`cat $bval | wc -w`
- if [ $bvall != 1 ]; then error_exit "ERROR: bvals file contains $bvall lines, it should be 1 lines"; fi
- if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw words, it should be $dtidim4 words"; fi 
-fi
+if [ `test_varfile $bvec` -eq 0 ]; then error_exit "ERROR: $bvec is not a valid bvec file"; fi
 
-if  [ "$method" != "eddy" ] && [ "$method" != "eddy_with_topup" ]  ; then
- error_exit "ERROR unrecognized method: $method"
-fi
+bvecl=`cat $bvec | awk 'END{print NR}'`
+bvecw=`cat $bvec | wc -w` 
+if [ $bvecl != 3 ]; then error_exit "ERROR: bvecs file contains $bvecl lines, it should be 3 lines, each for x, y, z"; fi
+if [ "$bvecw" != "`expr 3 \* $dtidim4`" ]; then error_exit "ERROR: bvecs file contains $bvecw words, it should be 3 x $dtidim4 = `expr 3 \* $dtidim4` words"; fi
+
+if [ `test_varfile $bval` -eq 0 ]; then error_exit "ERROR: $bval is not a valid bvals file"; fi
+
+bvall=`cat $bval | awk 'END{print NR}'`; bvalw=`cat $bval | wc -w`
+if [ $bvall != 1 ]; then error_exit "ERROR: bvals file contains $bvall lines, it should be 1 lines"; fi
+if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw words, it should be $dtidim4 words"; fi 
+
 
 if [ `test_varimg $mask` -eq 0 ]; then 
  error_exit "ERROR: cannot find mask image: $mask" 
 fi
+
 
 #------------- Motion correction ----------------#
 
@@ -201,7 +199,6 @@ while [ $i -lt $dtidim4 ]; do ## loop through DWIs
  echo $v | awk '{printf "%f %f %f\n",$1*180/3.141592653,$2*180/3.141592653,$3*180/3.141592653}' >> $tmpdir/rotation.par
  echo $v | awk '{print $7,$8,$9}' >> $tmpdir/scale.par
  echo $v | awk '{print $10,$11,$12}' >> $tmpdir/skew.par
-
 
  i=`expr $i + 1`
 done ## end while loop across DWIs

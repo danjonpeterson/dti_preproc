@@ -140,18 +140,20 @@ if [ `test_varimg $mask` -eq 0 ]; then
  error_exit "ERROR: cannot find mask image: $mask" 
 fi
 
-if [ "$bvec" = "" ] && [ "$bval" = "" ] ;  then
- test=1
-else
- if [ `test_varfile $bvec` -eq 0 ]; then error_exit "ERROR: no bvecs file specified"; fi
- bvecl=`cat $bvec | awk 'END{print NR}'`; bvecw=`cat $bvec | wc -w` 
- if [ $bvecl != 3 ]; then error_exit "ERROR: bvecs file contains $bvecl lines, it should be 3 lines, each for x, y, z"; fi
- if [ "$bvecw" != "`expr 3 \* $dtidim4`" ]; then error_exit "ERROR: bvecs file contains $bvecw words, it should be 3 x $dtidim4 words"; fi
- if [ `test_varfile $bval` -eq 0 ]; then error_exit "ERROR: no bvals file specified"; fi
- bvall=`cat $bval | awk 'END{print NR}'`; bvalw=`cat $bval | wc -w`
- if [ $bvall != 1 ]; then error_exit "ERROR: bvals file contains $bvall lines, it should be 1 lines"; fi
- if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw words, it should be $dtidim4 words"; fi 
-fi
+if [ `test_varfile $bvec` -eq 0 ]; then error_exit "ERROR: $bvec is not a valid bvec file"; fi
+
+bvecl=`cat $bvec | awk 'END{print NR}'`
+bvecw=`cat $bvec | wc -w` 
+if [ $bvecl != 3 ]; then error_exit "ERROR: bvecs file contains $bvecl lines, it should be 3 lines, each for x, y, z"; fi
+if [ "$bvecw" != "`expr 3 \* $dtidim4`" ]; then error_exit "ERROR: bvecs file contains $bvecw words, it should be 3 x $dtidim4 = `expr 3 \* $dtidim4` words"; fi
+
+if [ `test_varfile $bval` -eq 0 ]; then error_exit "ERROR: $bval is not a valid bvals file"; fi
+
+bvall=`cat $bval | awk 'END{print NR}'`; bvalw=`cat $bval | wc -w`
+if [ $bvall != 1 ]; then error_exit "ERROR: bvals file contains $bvall lines, it should be 1 lines"; fi
+if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw words, it should be $dtidim4 words"; fi 
+
+
 
 
 #-------------- fitting the tensor ------------------#
@@ -162,7 +164,7 @@ s0_count=`cat $bval | tr ' ' '\n' | grep -c ^0`
 dwi_count=`expr $dtidim4 - $s0_count`
 total_count=`echo $dwi_count + $s0_count | bc`
 
-if [ "$mode" = "fast" ]; then
+if [ "$fast_testing" = "y" ]; then
   method=fsl
 fi
 

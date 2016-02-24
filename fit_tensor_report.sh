@@ -112,18 +112,19 @@ T fsl_tsplot -i $reportdir/outliers_ts_trim.txt -o $reportdir/outlier_plot.png -
 echo "![](outlier_plot.png) \n" >> ${RF}.Rmd
 
 ## outlier map
-fslmaths $tmpdir/dti_exit_code.nii.gz -sub 1000 -thr 0 $tmpdir/dti_outlier_count.nii.gz
+T fslmaths $tmpdir/dti_exit_code.nii.gz -sub 1000 -thr 0 $tmpdir/dti_outlier_count.nii.gz
 echo "## Outlier Image "   >> ${RF}.Rmd
-T ${scriptdir}/image_to_gif.sh $tmpdir/dti_outlier_count.nii.gz $reportdir/outlier_count.gif
+T $scriptdir/image_to_gif.sh $tmpdir/dti_outlier_count.nii.gz $reportdir/outlier_count.gif
 echo "![](outlier_count.gif) \n" >> ${RF}.Rmd
 
 ## Sigma
 sigma=`fslstats $tmpdir/sigma_map -P 50`
 echo "__Median noise level across the image: $sigma __ \n"   >> ${RF}.Rmd
 
-# S0
+# log S0
 echo "## log - S0 Image "   >> ${RF}.Rmd
-T $scriptdir/image_to_gif.sh $tmpdir/dti_log_s0.nii.gz $reportdir/S0.gif
+T fslmaths $tmpdir/dti_log_s0.nii.gz -mas $outdir/unwarped_brain_mask.nii.gz $tmpdir/dti_log_s0_mas.nii.gz
+T $scriptdir/image_to_gif.sh $tmpdir/dti_log_s0_mas.nii.gz $reportdir/S0.gif
 echo "![](S0.gif) \n" >> ${RF}.Rmd
 
 ## noise map
@@ -145,6 +146,5 @@ T $scriptdir/image_to_gif.sh $tmpdir/dti_sse.nii.gz $reportdir/SSE.gif
 echo "![](SSE.gif) \n" >> ${RF}.Rmd
 
 fi
-
 
 T R -e library\(rmarkdown\)\;rmarkdown::render\(\"${RF}.Rmd\"\)

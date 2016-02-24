@@ -37,9 +37,7 @@ usage_exit() {
 
     Optional: 
     -c <file>     : topup configuration file
-
-    -s <num>      : % signal loss threshold for B0 unwarping (default: 10)
-
+    -s <num>      : % signal loss threshold for fieldmap-based unwarping (default: 10)
     -o <dir>      : output directory (defaut: current working directory)
     -E            : don't run the commands, just echo them
     -F            : fast mode for testing (minimal iterations)
@@ -67,7 +65,6 @@ mode=normal                       # run mode (normal,echo)
 fast_testing=n                    # run with minimal processing for testing
 scriptdir=`dirname $0`            # directory where dti_preproc scripts live
 other_opts=""                     # flags to pass onto the sub-commands
-
 
 #------------- parsing parameters ----------------#
 if [ "$6" = "" ]; then usage_exit; fi  #show help message if fewer than six args
@@ -153,25 +150,24 @@ fi
 
 #------------- verifying inputs ----------------#
 
-
 if [ `test_varimg $diffusion` -eq 0 ]; then
  error_exit "ERROR: cannot find image for 4D raw diffusion data: $diffusion"
 else
   dtidim4=`fslval $diffusion dim4`
 fi
 
-if [ "$bvec" = "" ] && [ "$bval" = "" ] ;  then
- test=1
-else
- if [ `test_varfile $bvec` -eq 0 ]; then error_exit "ERROR: bad bvecs file"; fi
- bvecl=`cat $bvec | awk 'END{print NR}'`; bvecw=`cat $bvec | wc -w` 
- if [ $bvecl != 3 ]; then error_exit "ERROR: bvecs file contains $bvecl lines, it should be 3 lines, each for x, y, z"; fi
- if [ "$bvecw" != "`expr 3 \* $dtidim4`" ]; then error_exit "ERROR: bvecs file contains $bvecw words, it should be 3 x $dtidim4 words"; fi
- if [ `test_varfile $bval` -eq 0 ]; then error_exit "ERROR: no bvals file specified"; fi
- bvall=`cat $bval | awk 'END{print NR}'`; bvalw=`cat $bval | wc -w`
- if [ $bvall != 1 ]; then error_exit "ERROR: bvals file contains $bvall lines, it should be 1 lines"; fi
- if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw words, it should be $dtidim4 words"; fi 
-fi
+if [ `test_varfile $bvec` -eq 0 ]; then error_exit "ERROR: $bvec is not a valid bvec file"; fi
+
+bvecl=`cat $bvec | awk 'END{print NR}'`
+bvecw=`cat $bvec | wc -w` 
+if [ $bvecl != 3 ]; then error_exit "ERROR: bvecs file contains $bvecl lines, it should be 3 lines, each for x, y, z"; fi
+if [ "$bvecw" != "`expr 3 \* $dtidim4`" ]; then error_exit "ERROR: bvecs file contains $bvecw words, it should be 3 x $dtidim4 = `expr 3 \* $dtidim4` words"; fi
+
+if [ `test_varfile $bval` -eq 0 ]; then error_exit "ERROR: $bval is not a valid bvals file"; fi
+
+bvall=`cat $bval | awk 'END{print NR}'`; bvalw=`cat $bval | wc -w`
+if [ $bvall != 1 ]; then error_exit "ERROR: bvals file contains $bvall lines, it should be 1 lines"; fi
+if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw words, it should be $dtidim4 words"; fi 
 
 if [ `test_varimg $mask` -eq 0 ]; then 
  error_exit "ERROR: cannot find mask image: $mask" 
@@ -213,3 +209,4 @@ fi
 
 T $scriptdir/fit_tensor.sh -k $diffusion -b $bval -r $bvec -M $outdir/unwarped_`basename $mask` -o $outdir $other_opts
 
+#T -e ""

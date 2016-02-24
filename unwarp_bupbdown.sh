@@ -25,7 +25,6 @@ usage_exit() {
     -E               : don't run the commands, just echo them
     -F               : fast mode for testing (minimal iterations)
 
-
 EOF
     exit 1;
 }
@@ -41,7 +40,6 @@ configfile=b02b0.cnf                # config file. b02b0.cnf actually lives in $
 scriptdir=`dirname $0`              # directory where dti_preproc scripts live
 mode=normal                         # run mode (normal,echo)
 fast_testing=n                      # run with minimal processing for testing
-
 
 #---------------- Utility Functions --------------#
 
@@ -125,7 +123,14 @@ if [ `test_varimg $mask` -eq 0 ]; then
  error_exit "ERROR: cannot find image: $mask"; 
 fi; 
 
-#TODO: verify more inputs
+if [ `test_varfile $acqparams` -eq 0 ]; then 
+ error_exit "ERROR: cannot find acqparams file: $acqparams"; 
+fi; 
+
+if [ `test_varfile $bval` -eq 0 ] && [ -z "$S0_count" ]; then 
+ T -e "ERROR: no valid b-value file, nor S0 count"; 
+ usage_exit
+fi
 
 #--------- Distortion correction using blip up-blip down S0 images-------#
 
@@ -133,7 +138,7 @@ if [ "$fast_testing" = "y" ]; then
   configfile=$scriptdir/b02b0_fast.cnf
 fi
 
-#count number of S0 volumes if not supplied
+## count number of S0 volumes if not supplied
 if [ -z "$S0_count" ]; then
  S0_count=`cat $bval | tr ' ' '\n' | grep -c ^0`
 fi
@@ -145,14 +150,11 @@ T fslroi $diffusion $tmpdir/S0_images 0 $S0_count
 ## do the thing
 T topup --imain=$tmpdir/S0_images --datain=$acqparams --config=$configfile --out=$tmpdir/topup_out --fout=$tmpdir/field_est --iout=$tmpdir/unwarped_S0_images --verbose
 
-
+## remake mask after unwarping from mean S0 image
 T fslmaths $tmpdir/unwarped_S0_images -Tmean $tmpdir/avg_unwarped_S0
 T bet $tmpdir/avg_unwarped_S0 $tmpdir/unwarped_brain -m -f 0.2
 
-
 #--------------- copying results to output directory ------------#
-
-T mkdir -p $outdir
 
 T cp $tmpdir/topup_out* $outdir/
 T cp $tmpdir/unwarped_brain_mask.nii.gz $outdir/
