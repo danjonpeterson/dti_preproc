@@ -42,29 +42,31 @@ generate_report=y                 # generate a report
 reportdir=$tmpdir/report          # directory for html report
 eddy_iterations=4                 # number of iterations for EDDY
 mode=normal                       # run mode (normal,fast,echo)
-method=eddy
-scriptdir=`dirname $0`
+fast_testing=n                    # run with minimal processing for testing
+method=eddy                       # use eddy without topup
+scriptdir=`dirname $0`            # directory where dti_preproc scripts live
+other_eddy_opts=""
 
 #------------- parsing parameters ----------------#
 
 [ "$4" = "" ] && usage_exit #show help message if fewer than four args
 
-while getopts k:b:r:m:M:N:o:i:a:t:n:EF OPT
+while getopts k:b:r:M:N:o:i:a:t:n:EF OPT
  do
  case "$OPT" in 
    "k" ) dti="$OPTARG";;
    "b" ) bval="$OPTARG";;
-   "r" ) bvec="$OPTARG";;
-   "m" ) method="$OPTARG";;
+   "r" ) bvec="$OPTARG";;   
    "M" ) mask="$OPTARG";;
    "N" ) bvec_ecc=0;;
    "o" ) outdir="$OPTARG";;
    "i" ) indexfile="$OPTARG";;
    "a" ) acqparsfile="$OPTARG";;
-   "t" ) topupbasename="$OPTARG";;
+   "t" ) topupbasename="$OPTARG"
+         method="eddy_with_topup";;
    "n" ) eddy_iterations="$OPTARG";;
    "E" ) mode=echo;;
-   "F" ) mode=fast;;
+   "F" ) fast_testing=y;;
     * )  usage_exit;;
  esac
 done;
@@ -142,21 +144,25 @@ if  [ "$method" != "eddy" ] && [ "$method" != "eddy_with_topup" ]  ; then
  error_exit "ERROR unrecognized method: $method"
 fi
 
+if [ `test_varimg $mask` -eq 0 ]; then 
+ error_exit "ERROR: cannot find mask image: $mask" 
+fi
 
 #------------- Motion correction ----------------#
 
-if [ "$mode" = "fast" ]; then 
+if [ "$fast_testing" = "y" ]; then 
   eddy_iterations=0
+  other_eddy_opts=--dont_peas
 fi
 
 if [ "$method" = "eddy" ]; then
  T -e using eddy
- ## make a dymmy acqparams file
+ ## make a dummy acqparams file
  echo 0 1 0 0.072 > $tmpdir/acqparams.txt  
  ## make index file (just n "1"'s)
  seq -s " " $dtidim4 | sed 's/[0-9]*/1/g' > $tmpdir/index.txt
  ## run eddy
- T eddy --imain=$dti --mask=$mask --index=${tmpdir}/index.txt --acqp=${tmpdir}/acqparams.txt --bvecs=$bvec --bvals=$bval --out=${tmpdir}/eddy_out --very_verbose --niter=$eddy_iterations
+ T eddy --imain=$dti --mask=$mask --index=${tmpdir}/index.txt --acqp=${tmpdir}/acqparams.txt --bvecs=$bvec --bvals=$bval --out=${tmpdir}/eddy_out --very_verbose --niter=$eddy_iterations $other_eddy_opts
  ## create xfm directory
  T $scriptdir/eddy_pars_to_xfm_dir.py ${tmpdir}/eddy_out.eddy_parameters ${tmpdir}/dti_ecc.mat
  ## rename output
@@ -167,7 +173,7 @@ fi
 if [ "$method" = "eddy_with_topup" ]; then
  T -e using eddy with topup output
  ## run eddy
- T eddy --imain=$dti --mask=$mask --index=$indexfile --acqp=$acqparsfile --bvecs=$bvec --bvals=$bval --out=${tmpdir}/eddy_out --topup=$topupbasename --very_verbose --niter=$eddy_iterations
+ T eddy --imain=$dti --mask=$mask --index=$indexfile --acqp=$acqparsfile --bvecs=$bvec --bvals=$bval --out=${tmpdir}/eddy_out --topup=$topupbasename --very_verbose --niter=$eddy_iterations $other_eddy_opts
  ## create xfm directory
  T $scriptdir/eddy_pars_to_xfm_dir.py ${tmpdir}/eddy_out.eddy_parameters ${tmpdir}/dti_ecc.mat 
  ## rename output
@@ -235,7 +241,8 @@ while [ $ii -le ${numbvecs} ] ; do # loop through dwis
  rY=`echo "scale=7;  (${m21} * $X) + (${m22} * $Y) + (${m23} * $Z)" | bc -l`
  rZ=`echo "scale=7;  (${m31} * $X) + (${m32} * $Y) + (${m33} * $Z)" | bc -l`
 
- echo $X $Y $Z to $rX $rY $rZ via $matrix
+ # uncomment next line if you want to check the rotation math
+ # echo $X $Y $Z to $rX $rY $rZ via $matrix
 
  # using 'paste' for horizontal concatenation of the corrected vectors
  (echo $rX;echo $rY;echo $rZ) | paste $tmpdir/bvec_ecc - > $tmpdir/rotate_bvecs_tempfile.txt

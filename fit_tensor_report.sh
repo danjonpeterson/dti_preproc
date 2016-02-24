@@ -86,8 +86,13 @@ echo "__tensor fitting method: $method __\n" >> ${RF}.Rmd
 
 ## FA
 echo "## FA Image "   >> ${RF}.Rmd
-T $scriptdir/image_to_gif.sh $outdir/FA.nii.gz $reportdir/fa.gif
+T $scriptdir/image_to_gif.sh $outdir/dti_FA.nii.gz $reportdir/fa.gif
 echo "![](fa.gif) \n" >> ${RF}.Rmd
+
+## MD
+echo "## MD Image"   >> ${RF}.Rmd
+T $scriptdir/image_to_gif.sh $outdir/dti_MD.nii.gz $reportdir/md.gif
+echo "![](md.gif) \n" >> ${RF}.Rmd
 
 if [ "$method" = "restore" ]; then
 
@@ -99,7 +104,7 @@ xdim=`fslhd $dti | grep ^dim1 | awk '{print $2}'`
 ydim=`fslhd $dti | grep ^dim2 | awk '{print $2}'`
 zdim=`fslhd $dti | grep ^dim3 | awk '{print $2}'`
 echo "##Outliers across volumes"   >> ${RF}.Rmd
-T fslmaths $tmpdir/outlier_map.nii.gz -Xmean -Ymean -Zmean -mul $xdim -mul $ydim -mul $zdim $reportdir/outlier_ts_avg
+T fslmaths $tmpdir/dti_outlier_map.nii.gz -Xmean -Ymean -Zmean -mul $xdim -mul $ydim -mul $zdim $reportdir/outlier_ts_avg
 T tsplot $reportdir/tsplot_temp -f $reportdir/outlier_ts_avg.nii.gz -C 0 0 0 $reportdir/outliers_ts.txt
 
 cat $reportdir/outliers_ts.txt | tail -n +`echo $s0_count+1|bc` > $reportdir/outliers_ts_trim.txt
@@ -107,30 +112,39 @@ T fsl_tsplot -i $reportdir/outliers_ts_trim.txt -o $reportdir/outlier_plot.png -
 echo "![](outlier_plot.png) \n" >> ${RF}.Rmd
 
 ## outlier map
-fslmaths $tmpdir/exit_code.nii.gz -sub 1000 -thr 0 $tmpdir/outlier_count.nii.gz
+fslmaths $tmpdir/dti_exit_code.nii.gz -sub 1000 -thr 0 $tmpdir/dti_outlier_count.nii.gz
 echo "## Outlier Image "   >> ${RF}.Rmd
-T ${scriptdir}/image_to_gif.sh $tmpdir/outlier_count.nii.gz $reportdir/outlier_count.gif
+T ${scriptdir}/image_to_gif.sh $tmpdir/dti_outlier_count.nii.gz $reportdir/outlier_count.gif
 echo "![](outlier_count.gif) \n" >> ${RF}.Rmd
-
-fi
 
 ## Sigma
 sigma=`fslstats $tmpdir/sigma_map -P 50`
 echo "__Median noise level across the image: $sigma __ \n"   >> ${RF}.Rmd
+
+# S0
+echo "## log - S0 Image "   >> ${RF}.Rmd
+T $scriptdir/image_to_gif.sh $tmpdir/dti_log_s0.nii.gz $reportdir/S0.gif
+echo "![](S0.gif) \n" >> ${RF}.Rmd
 
 ## noise map
 #echo "<B>Noise Image </B><BR>"   >> ${RF}.Rmd
 #image_to_gif $tmpdir/noise_map.nii.gz $reportdir/noise.gif
 #echo "<IMG src="./noise.gif" width="1200" height="100" border="0"><BR><BR>" >> ${RF}.Rmd
 
-## MD
-echo "## MD Image"   >> ${RF}.Rmd
-T $scriptdir/image_to_gif.sh $outdir/MD.nii.gz $reportdir/md.gif
-echo "![](md.gif) \n" >> ${RF}.Rmd
+fi
 
-## S0
-echo "## log - S0 Image "   >> ${RF}.Rmd
-T $scriptdir/image_to_gif.sh $tmpdir/log_s0.nii.gz $reportdir/S0.gif
+if [ "$method" = "fsl" ]; then
+# S0
+echo "## S0 Image "   >> ${RF}.Rmd
+T $scriptdir/image_to_gif.sh $tmpdir/dti_S0.nii.gz $reportdir/S0.gif
 echo "![](S0.gif) \n" >> ${RF}.Rmd
+
+#SSE 
+echo "## Sum-squared error Image "   >> ${RF}.Rmd
+T $scriptdir/image_to_gif.sh $tmpdir/dti_sse.nii.gz $reportdir/SSE.gif
+echo "![](SSE.gif) \n" >> ${RF}.Rmd
+
+fi
+
 
 T R -e library\(rmarkdown\)\;rmarkdown::render\(\"${RF}.Rmd\"\)

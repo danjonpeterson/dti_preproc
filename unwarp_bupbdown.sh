@@ -39,7 +39,9 @@ generate_report=y                   # generate a report
 reportdir=$tmpdir/report            # directory for html report
 configfile=b02b0.cnf                # config file. b02b0.cnf actually lives in ${FSLDIR}/etc/flirtsch/
 scriptdir=`dirname $0`              # directory where dti_preproc scripts live
-mode=normal                         # run mode (normal,fast,echo)
+mode=normal                         # run mode (normal,echo)
+fast_testing=n                      # run with minimal processing for testing
+
 
 #---------------- Utility Functions --------------#
 
@@ -94,7 +96,7 @@ while getopts k:a:M:so:r:c:b:n:EF OPT
    "b" ) bval="$OPTARG";;
    "n" ) S0_count="$OPTARG";;
    "E" ) mode=echo;;
-   "F" ) mode=fast;;
+   "F" ) fast_testing=y;;
     * )  usage_exit;;
  esac
 done;
@@ -127,7 +129,7 @@ fi;
 
 #--------- Distortion correction using blip up-blip down S0 images-------#
 
-if [ "$mode" = "fast" ]; then
+if [ "$fast_testing" = "y" ]; then
   configfile=$scriptdir/b02b0_fast.cnf
 fi
 

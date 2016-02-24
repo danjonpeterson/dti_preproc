@@ -36,19 +36,21 @@ sl=10                               # default signal loss threshold
 direction=y                         # distortion direction
 tmpdir=temp-unwarp_fieldmap         # name of directory for intermediate files
 LF=$tmpdir/unwarp_fieldmap.log      # default log filename
-te=93.46                            # field map TE
-esp=.567                            # field map echo spacing
+te="PARSE_ERROR"                    # field map TE (ex: 93.46)
+esp="PARSE_ERROR"                   # field map echo spacing (ex: 0.576)
 reg=y                               # coregister between fieldmap and DTI data
 outdir=.                            # put output in PWD
 generate_report=y                   # generate a report 
 reportdir=$tmpdir/report            # directory for html report
 mode=normal                         # run mode (normal,fast,echo)
 scriptdir=`dirname $0`              # directory where dti_preproc scripts live
+fast_testing=n                      # run with minimal processing for testing
+
 
 #------------- Parse Parameters  --------------------#
 [ "$4" = "" ] && usage_exit #show help message if fewer than four args
 
-while getopts k:f:m:M:u:t:e:o:r:p:nsEF OPT
+while getopts k:f:m:M:u:s:t:e:o:r:p:nsEF OPT
  do
  case "$OPT" in 
    "k" ) diffusion="$OPTARG";; 
@@ -65,7 +67,7 @@ while getopts k:f:m:M:u:t:e:o:r:p:nsEF OPT
    "r" ) reportdir="$OPTARG";;
    "p" ) mag_mask="$OPTARG";;
    "E" ) mode=echo;;
-   "F" ) mode=fast;;
+   "F" ) fast_testing=y;;
     * )  usage_exit;;
  esac
 done;
@@ -125,17 +127,26 @@ if [ `test_varimg $diffusion` -eq 0 ]; then
 fi
 
 if [ `test_varimg $dph` -eq 0 ]; then
- error_exit "ERROR: cannot find image for B0 fieldmap: $dph"
+ error_exit "ERROR: cannot find fieldmap phase image : $dph"
 fi
 
 if [ `test_varimg $mag` -eq 0 ]; then 
- error_exit "ERROR: cannot find image for B0 fieldmap magnitude: $mag"
+ error_exit "ERROR: cannot find fieldmap magnitude image: $mag"
 fi
 
 if [ `test_varimg $mask` -eq 0 ]; then 
- error_exit "ERROR: cannot find image: $mask"
+ error_exit "ERROR: cannot find mask diffusion image: $mask" 
 fi
 
+if [ "$esp" = "PARSE_ERROR" ]; then
+ echo "ERROR: dwell time: not set"
+ usage_exit
+fi
+
+if [ "$te" = "PARSE_ERROR" ]; then
+ echo "ERROR: TE not set"
+ usage_exit
+fi
 
 
 #------------- Distortion correction using fieldmap----------------#
@@ -149,17 +160,17 @@ T fslroi $diffusion $tmpdir/native_S0 0 1
 T fslmaths $tmpdir/native_S0 -mas $mask $tmpdir/native_S0_brain
 T fslmaths $tmpdir/native_S0_brain -bin $tmpdir/native_S0_brain_mask
 
-## skull-strip, dilate and smooth phase map
-T fslmaths $mag_mask -bin -ero -kernel boxv 3 -mul $tmpdir/native_fmap_ph -kernel box 10 -dilM -dilM -dilM -dilM -dilM -fmedian -fmedian -s 3 $tmpdir/native_fmap_ph_filtered
-
-
-## run bet or apply given mask
+## run bet on magnitude images or apply given mask
 if [ "x${mag_mask}" = "x" ]; then 
- T bet $tmpdir/native_fmap_mag $tmpdir/native_fmap_mag_brain -m -f 0.3  #TODO
+ T bet $tmpdir/native_fmap_mag $tmpdir/native_fmap_mag_brain -m -f 0.3
+ mag_mask=$tmpdir/native_fmap_mag_brain
 else 
  T fslmaths $tmpdir/native_fmap_mag -mas $mag_mask $tmpdir/native_fmap_mag_brain 
  T fslmaths $mag_mask -bin $tmpdir/native_fmap_mag_brain_mask
 fi
+
+## skull-strip, dilate and smooth phase map
+T fslmaths $mag_mask -bin -ero -kernel boxv 3 -mul $tmpdir/native_fmap_ph -kernel box 10 -dilM -dilM -dilM -dilM -dilM -fmedian -fmedian -s 3 $tmpdir/native_fmap_ph_filtered
 
 ## scale signal loss threshold
 sl=`echo "scale=3; 1 - $sl/100" | bc`;

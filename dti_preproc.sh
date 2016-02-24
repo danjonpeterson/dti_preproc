@@ -56,14 +56,17 @@ dph="PARSE_ERROR_dph"             # fieldmap phase map
 mag="PARSE_ERROR_mag"             # fieldmap magnitude image
 bval="PARSE_ERROR_bval"           # b-values file (in FSL format)
 bvec="PARSE_ERROR_vec"            # b-vectors file (in FSL format)
-mask="PARSE_ERROR_mask"           # brain mask file
+mask="PARSE_ERROR_mask"           # brain mask file for diffusion data
 method="PARSE_ERROR_method"       # topup or fugue
+bvec_rotation=y                   # rotate bvecs according to motion correction transforms
+configfile=b02b0.cnf              # config file. b02b0.cnf actually lives in ${FSLDIR}/etc/flirtsch/
 SL=10                             # signal loss threshold
-outdir=.                          # output directory
+outdir=out                        # output directory
 LF=dti_preprocess.log             # default log filename
-mode=normal                       # run mode (normal,fast,echo)
+mode=normal                       # run mode (normal,echo)
+fast_testing=n                    # run with minimal processing for testing
 scriptdir=`dirname $0`            # directory where dti_preproc scripts live
-
+other_opts=""                     # flags to pass onto the sub-commands
 
 
 #------------- parsing parameters ----------------#
@@ -89,7 +92,7 @@ while getopts k:b:r:M:f:m:e:t:p:q:i:c:s:o:EF OPT
    "s" ) SL="$OPTARG";;   
    "o" ) outdir="$OPTARG";;
    "E" ) mode=echo;;
-   "F" ) mode=fast;;
+   "F" ) fast_testing=y;;
     * )  usage_exit;;
  esac
 done;
@@ -144,19 +147,30 @@ if [ "$mode" = "echo" ]; then
   T -e "Running in echo mode - no actual processing done"
 fi
 
+if [ "$fast_testing" = "y" ]; then
+  other_opts=`echo $other_opts -F`
+fi
+
 #------------- verifying inputs ----------------#
 
 
 if [ `test_varimg $diffusion` -eq 0 ]; then
  error_exit "ERROR: cannot find image for 4D raw diffusion data: $diffusion"
+else
+  dtidim4=`fslval $diffusion dim4`
 fi
 
-if [ `test_varfile $bval` -eq 0 ]; then
- error_exit "ERROR: cannot find b-value file: $bval"
-fi
-
-if [ `test_varfile $bvec` -eq 0 ]; then
- error_exit "ERROR: cannot find b-vector file: $bvec"
+if [ "$bvec" = "" ] && [ "$bval" = "" ] ;  then
+ test=1
+else
+ if [ `test_varfile $bvec` -eq 0 ]; then error_exit "ERROR: bad bvecs file"; fi
+ bvecl=`cat $bvec | awk 'END{print NR}'`; bvecw=`cat $bvec | wc -w` 
+ if [ $bvecl != 3 ]; then error_exit "ERROR: bvecs file contains $bvecl lines, it should be 3 lines, each for x, y, z"; fi
+ if [ "$bvecw" != "`expr 3 \* $dtidim4`" ]; then error_exit "ERROR: bvecs file contains $bvecw words, it should be 3 x $dtidim4 words"; fi
+ if [ `test_varfile $bval` -eq 0 ]; then error_exit "ERROR: no bvals file specified"; fi
+ bvall=`cat $bval | awk 'END{print NR}'`; bvalw=`cat $bval | wc -w`
+ if [ $bvall != 1 ]; then error_exit "ERROR: bvals file contains $bvall lines, it should be 1 lines"; fi
+ if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw words, it should be $dtidim4 words"; fi 
 fi
 
 if [ `test_varimg $mask` -eq 0 ]; then 
@@ -169,20 +183,21 @@ if [ "$method" = "topup" ]; then
 
   T -e "Unwarping distortions based on blipup-blipbdown data"
 
-  T $scriptdir/unwarp_bupbdown.sh -k $diffusion -a $acqparams -M $mask -c $configfile -o $outdir
+  T $scriptdir/unwarp_bupbdown.sh -k $diffusion -a $acqparams -M $mask -c $configfile -o $outdir -b $bval $other_opts
   
-  T $scriptdir/motion_correct.sh -k $diffusion -b $bval -r $bvec -M $mask -m eddy_with_topup -i $index -a $acqparams -t temp-unwarp_bupbdown/topup_out -o $outdir
-  skip_reslice=y
+  T $scriptdir/motion_correct.sh -k $diffusion -b $bval -r $bvec -M $mask -i $index -a $acqparams -t temp-unwarp_bupbdown/topup_out -o $outdir $other_opts
+
+  diffusion=$outdir/mc_unwarped_$diffusion
 
 elif [ "$method" = "fugue" ]; then
 
   T -e "Unwarping distortions based on an acquired fieldmap"
 
-  T $scriptdir/motion_correct.sh -k $diffusion -b $bval -r $bvec -o $outdir -M $mask -m eddy
+  T $scriptdir/motion_correct.sh -k $diffusion -b $bval -r $bvec -o $outdir -M $mask -m eddy $other_opts
 
-  T $scriptdir/unwarp_fieldmap.sh -k $outdir/mc_$diffusion -f $dph -m $mag -M $mask -p $mag_mask -o $outdir -s
+  T $scriptdir/unwarp_fieldmap.sh -k $outdir/mc_$diffusion -f $dph -m $mag -M $mask -p $mag_mask -o $outdir -s $SL -t $esp -e $te  $other_opts
 
-  T mv $outdir/unwarped_mc_$diffusion $outdir/mc_unwarped_$diffusion
+  diffusion=$outdir/unwarped_mc_$diffusion
 
 else
 
@@ -192,5 +207,9 @@ fi
 
 #-------------- fitting the tensor ------------------#
 
-T $scriptdir/fit_tensor.sh -k $outdir/resliced_$diffusion -b $bval -r $outdir/bvec_ecc -m $outdir/unwarped_`basename $mask` -o $outdir
+if [ "$bvec_rotation" = "y" ]; then
+  bvec=$outdir/bvec_mc.txt
+fi
+
+T $scriptdir/fit_tensor.sh -k $diffusion -b $bval -r $bvec -M $outdir/unwarped_`basename $mask` -o $outdir $other_opts
 
