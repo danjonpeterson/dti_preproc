@@ -207,6 +207,6 @@ if [ "$bvec_rotation" = "y" ]; then
   bvec=$outdir/bvec_mc.txt
 fi
 
-T $scriptdir/fit_tensor.sh -k $diffusion -b $bval -r $bvec -M $outdir/unwarped_`basename $mask` -o $outdir $other_opts
+T $scriptdir/fit_tensor.sh -k $diffusion -b $bval -r $bvec -M $outdir/unwarped_brain_mask.nii.gz -o $outdir $other_opts
 
 #T -e ""
