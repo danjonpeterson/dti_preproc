@@ -167,7 +167,7 @@ if [ `test_varfile $bval` -eq 0 ]; then error_exit "ERROR: $bval is not a valid 
 
 bvall=`cat $bval | awk 'END{print NR}'`; bvalw=`cat $bval | wc -w`
 if [ $bvall != 1 ]; then error_exit "ERROR: bvals file contains $bvall lines, it should be 1 lines"; fi
-if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw words, it should be $dtidim4 words"; fi 
+if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bval file contains $bvalw words, it should be $dtidim4 words"; fi 
 
 if [ `test_varimg $mask` -eq 0 ]; then 
  error_exit "ERROR: cannot find mask image: $mask" 
@@ -209,4 +209,5 @@ fi
 
 T $scriptdir/fit_tensor.sh -k $diffusion -b $bval -r $bvec -M $outdir/unwarped_brain_mask.nii.gz -o $outdir $other_opts
 
-#T -e ""
+T -e "Inspect results with the following command:"
+T -e "firefox $outdir/*html "
