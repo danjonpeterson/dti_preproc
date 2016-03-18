@@ -9,7 +9,7 @@ usage_exit() {
      rearrange_diffusion.sh <4d image> <bvals> <bvecs> <output basename> <permutation vector>
  
    Example: (moves image #15 to the second position):
-     rearrange_diffusion.sh download_diffusion.nii.gz download_bvals.txt download_bvecs.txt rearranged 1 15 `seq 2 14` `seq 16 30`
+     rearrange_diffusion.sh download_diffusion.nii.gz download_bvals.txt download_bvecs.txt rearranged 1 15 \`seq 2 14\` \`seq 16 30\`
 
 EOF
     exit 1;
