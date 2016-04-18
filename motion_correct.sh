@@ -1,18 +1,6 @@
 #! /bin/sh
 
-# TODO: fix options
-# TODO: speed up rotate_one_bvec (consider adding to body of script)
-
-#---------variables---------#
-tmpdir=temp-motion_correct        # name of directory for intermediate files
-log_filename=motion_correct.log   # default log filename
-outdir=.                          # put output in PWD
-method=flirt                      # use flirt,  mcflirt or eddy
-MCFLIRT=3                         # default number of stages for MCFLIRT
-generate_report=y                 # generate a report 
-reportdir=$tmpdir/report          # directory for html report
-EDDY_ITERATIONS=4                 # number of iterations for EDDY
-scriptdir=`dirname $0`
+# TODO: fix options, implement fast, get rid of flirt, MCflirt
 
 usage_exit() {
       cat <<EOF
@@ -29,170 +17,177 @@ usage_exit() {
     -k <img>    : DTI 4D data
     -b <bvals.txt> : a text file containing a list of b-values
     -r <bvecs.txt> : a text file containing a list of b-vectors
+    -M <img> : mask file for dti image 
+
   
     Option: 
-    -M <img> : mask file for dti image 
-    -d <dir> : directory to save outputs (default: ./dti)
-    -F       : Use the actual directory name given (i.e. do not add + to make a new directory)
-    -R <num> : reference volume (default : 0th volume)
-    -m       : motion correction method (flirt, mcflirt, eddy, eddy_with_topup) default: flirt
-    -N       : do not correct b-vector file using rotation parameters (output subdirectory, dti_bvecmc)
     -o       : directory for output
     -i       : index file for eddy with topup
     -a       : acquisition parameter file for eddy with topup
     -t       : topup output basename 
     -n       : number of iterations for eddy
-
+    -E       : don't run the commands, just echo them
+    -F       : fast mode for testing (minimal iterations)
 EOF
 
 
     exit 1;
 }
 
+#---------variables---------#
+tmpdir=temp-motion_correct        # name of directory for intermediate files
+log_filename=motion_correct.log   # default log filename
+outdir=.                          # put output in PWD
+generate_report=y                 # generate a report 
+reportdir=$tmpdir/report          # directory for html report
+eddy_iterations=4                 # number of iterations for EDDY
+mode=normal                       # run mode (normal,fast,echo)
+fast_testing=n                    # run with minimal processing for testing
+method=eddy                       # use eddy without topup
+scriptdir=`dirname $0`            # directory where dti_preproc scripts live
+other_eddy_opts=""
+
+#------------- parsing parameters ----------------#
+
+[ "$4" = "" ] && usage_exit #show help message if fewer than four args
+
+while getopts k:b:r:M:N:o:i:a:t:n:EF OPT
+ do
+ case "$OPT" in 
+   "k" ) dti="$OPTARG";;
+   "b" ) bval="$OPTARG";;
+   "r" ) bvec="$OPTARG";;   
+   "M" ) mask="$OPTARG";;
+   "N" ) bvec_ecc=0;;
+   "o" ) outdir="$OPTARG";;
+   "i" ) indexfile="$OPTARG";;
+   "a" ) acqparsfile="$OPTARG";;
+   "t" ) topupbasename="$OPTARG"
+         method="eddy_with_topup";;
+   "n" ) eddy_iterations="$OPTARG";;
+   "E" ) mode=echo;;
+   "F" ) fast_testing=y;;
+    * )  usage_exit;;
+ esac
+done;
 
 #---------------- Utility Functions --------------#
-test_varimg (){
+
+T () {                      # main shell commands are run through here
+
+ E=0 
+ if [ "$1" = "-e" ] ; then  # just outputting and logging a message with T -e 
+  E=1; shift  
+ fi
+ 
+ cmd="$*"
+ echo $* | tee -a $LF       # echo the command into the console, and the log file
+
+ if [ "$E" != "1" ] && [ "$mode" != "echo" ] ; then 
+  $cmd 2>&1 | tee -a $LF    # run the command. redirect the output into the log file. Stderr is not directed to the logfile
+ fi
+
+ echo | tee -a $LF         # write an empty line to the console and log file
+}
+
+error_exit (){      
+    echo "$1" >&2   # Send message to stderr
+    echo "$1" > $LF # send message to log file
+    exit "${2:-1}"  # Return a code specified by $2 or 1 by default.
+}
+
+test_varimg (){   # test if a string is a valid image file
     var=$1
     if [ "x$var" = "x" ]; then test=0; else  test=`imtest $1`; fi
     echo $test
 }
 
-test_varfile (){
+test_varfile (){  # test if a string is a valid file
     var=$1
     if [ "x$var" = "x" ]; then test=0 ; elif [ ! -f $var ]; then test=0; else test=1; fi
     echo $test
 }
 
-T () {
-
- E=0 
- if [ "$1" = "-e" ] ; then  ## just outputting and logging a message with T -e 
-  E=1; shift  
- fi
- 
- cmd="$*"
- echo $* | tee -a $LF       ## read the command into the console, and the log file
-
- if [ "$E" != "1" ] ; then 
-  $cmd 2>&1 | tee -a $LF    ## run the command. read the output into a the log file. Stderr is not directed to the logfile
- fi
-
- echo  | tee -a $LF         ## write an empty line to the console and log file
-}
-
-#------------- Preparatory process --------------------# ##TODO:clean
-[ "$6" = "" ] && usage_exit
-
-while getopts k:b:r:d:o:u:s:v:K:i:a:t:M:d:FR:m:4n:NU OPT
- do
- case "$OPT" in 
-   "k" ) dti="$OPTARG";;
-   "b" ) bval="$OPTARG";;
-   "r" ) bvec="$OPTARG";;
-   "R" ) refvol="$OPTARG";;
-   "m" ) method="$OPTARG";;
-   "M" ) mask="$OPTARG";;
-   "4" ) MCFLIRT=4;;
-   "N" ) bvec_ecc=0;;
-   "o" ) outdir="$OPTARG";;
-   "i" ) indexfile="$OPTARG";;
-   "a" ) acqparsfile="$OPTARG";;
-   "t" ) topupbasename="$OPTARG";;
-   "n" ) EDDY_ITERATIONS="$OPTARG";;
-    * )  usage_exit;;
- esac
-done;
-
-LF=$tmpdir/$log_filename
-
-if [ `test_varimg $dti` -eq 0 ]; then
- echo "ERROR: cannot find image for dti 4D data: $dph"
- exit 1;
-else
- dtidim4=`fslval $dti dim4`
-fi
-
-if [ "$bvec" = "" ] && [ "$bval" = "" ] ;  then
- test=1
-else
- if [ `test_varfile $bvec` -eq 0 ]; then echo "ERROR: no bvecs file specified"; exit 1;fi
- bvecl=`cat $bvec | awk 'END{print NR}'`; bvecw=`cat $bvec | wc -w`	
- if [ $bvecl != 3 ]; then echo "ERROR: bvecs file contains $bvecl lines, it should be 3 lines, each for x, y, z"; exit 1;fi
- if [ "$bvecw" != "`expr 3 \* $dtidim4`" ]; then echo "ERROR: bvecs file contains $bvecw words, it should be 3 x $dtidim4 words"; exit 1;fi
- if [ `test_varfile $bval` -eq 0 ]; then echo "ERROR: no bvals file specified"; exit 1;fi
- bvall=`cat $bval | awk 'END{print NR}'`; bvalw=`cat $bval | wc -w`
- if [ $bvall != 1 ]; then echo "ERROR: bvals file contains $bvall lines, it should be 1 lines"; exit 1;fi
- if [ $bvalw != $dtidim4 ]; then echo "ERROR: bvalc file contains $bvalw words, it should be $dtidim4 words"; exit 1;fi 
-fi
-
-if [ "$method" != "flirt" ] && [ "$method" != "mcflirt" ] && [ "$method" != "eddy" ] && [ "$method" != "eddy_with_topup" ]  ; then
- echo "ERROR unrecognized method: $method"
- exit 1
-fi
-
-#------------- Motion correction ----------------#
+#------------- Setting things up ----------------#
 
 mkdir -p $outdir
 
 ## clear, then make the temporary directory
 if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
 mkdir $tmpdir
+
+LF=$tmpdir/$log_filename
 touch $LF
 
-# the directory that this script was called from
-SCRIPTDIR=`dirname $0`
+echo "Logfife for command: " >> $LF
+echo $0 $@ >> $LF
+echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
+echo "" >> $LF
 
-##copy S0 image to temporary directory
-T fslroi $dti $tmpdir/native_S0 0 1
+#------------- verifying inputs ----------------#
+
+if [ `test_varimg $dti` -eq 0 ]; then
+ error_exit "ERROR: cannot find image for dti 4D data: $dph"
+else
+ dtidim4=`fslval $dti dim4`
+fi
+
+if [ `test_varfile $bvec` -eq 0 ]; then error_exit "ERROR: $bvec is not a valid bvec file"; fi
+
+bvecl=`cat $bvec | awk 'END{print NR}'`
+bvecw=`cat $bvec | wc -w` 
+if [ $bvecl != 3 ]; then error_exit "ERROR: bvecs file contains $bvecl lines, it should be 3 lines, each for x, y, z"; fi
+if [ "$bvecw" != "`expr 3 \* $dtidim4`" ]; then error_exit "ERROR: bvecs file contains $bvecw words, it should be 3 x $dtidim4 = `expr 3 \* $dtidim4` words"; fi
+
+if [ `test_varfile $bval` -eq 0 ]; then error_exit "ERROR: $bval is not a valid bvals file"; fi
+
+bvall=`cat $bval | awk 'END{print NR}'`; bvalw=`cat $bval | wc -w`
+if [ $bvall != 1 ]; then error_exit "ERROR: bvals file contains $bvall lines, it should be 1 lines"; fi
+if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw words, it should be $dtidim4 words"; fi 
 
 
+if [ `test_varimg $mask` -eq 0 ]; then 
+ error_exit "ERROR: cannot find mask image: $mask" 
+fi
 
-if [ "$method" = "flirt" ]; then   
- T -e using mcflirt
- ## delete existing transformation matrix
- if [ -e $tmpdir/dti_ecc.mat ]; then rm -Rf $tmpdir/dti_ecc.mat;fi
- ## do MCFLIRT DJP added corr-ratio cost function. Output transformation matrices and rms displacement
- T mcflirt -in $dti -o $tmpdir/dti_ecc -stages $MCFLIRT -dof 12 -cost corratio -reffile $tmpdir/native_S0 -report -mats -rmsabs -rmsrel;   
-fi 
 
-if [ "$method" = "mcflirt" ]; then
- T -e using flirt
- mkdir -p $tmpdir/dti_ecc.mat
- i=0
- while [ $i -lt $dtidim4 ]; do       ## loop through images, starting at zero
-  j=`zeropad $i 4`
-  T fslroi $dti $tmpdir/vol_$j $i 1  ## extract the ith volume
-                                     ## do the registration, using the S0 as the target file
-  T flirt -in $tmpdir/vol_$j -ref $tmpdir/native_S0 -nosearch -paddingsize 1 -omat $tmpdir/dti_ecc.mat/MAT_$j
-  i=`expr $i + 1`                    ## increment i
- done
+#------------- Motion correction ----------------#
+
+if [ "$fast_testing" = "y" ]; then 
+  eddy_iterations=0
+  other_eddy_opts=--dont_peas
 fi
 
 if [ "$method" = "eddy" ]; then
  T -e using eddy
- ## make acqparams
- echo 0 1 0 0.072 > $tmpdir/acqparams.txt #TODO: take actual values
+ ## make a dummy acqparams file
+ echo 0 1 0 0.072 > $tmpdir/acqparams.txt  
  ## make index file (just n "1"'s)
  seq -s " " $dtidim4 | sed 's/[0-9]*/1/g' > $tmpdir/index.txt
  ## run eddy
- T eddy --imain=$dti --mask=$mask --index=${tmpdir}/index.txt --acqp=${tmpdir}/acqparams.txt --bvecs=$bvec --bvals=$bval --out=${tmpdir}/eddy_out --very_verbose --niter=$EDDY_ITERATIONS
+ T eddy --imain=$dti --mask=$mask --index=${tmpdir}/index.txt --acqp=${tmpdir}/acqparams.txt --bvecs=$bvec --bvals=$bval --out=${tmpdir}/eddy_out --very_verbose --niter=$eddy_iterations $other_eddy_opts
  ## create xfm directory
  T $scriptdir/eddy_pars_to_xfm_dir.py ${tmpdir}/eddy_out.eddy_parameters ${tmpdir}/dti_ecc.mat
  ## rename output
  T mv $tmpdir/eddy_out.nii.gz $tmpdir/dti_ecc.nii.gz 
 fi
 
+
 if [ "$method" = "eddy_with_topup" ]; then
  T -e using eddy with topup output
- T eddy --imain=$dti --mask=$mask --index=$indexfile --acqp=$acqparsfile --bvecs=$bvec --bvals=$bval --out=${tmpdir}/eddy_out --topup=$topupbasename --very_verbose --niter=$EDDY_ITERATIONS
+ ## run eddy
+ T eddy --imain=$dti --mask=$mask --index=$indexfile --acqp=$acqparsfile --bvecs=$bvec --bvals=$bval --out=${tmpdir}/eddy_out --topup=$topupbasename --very_verbose --niter=$eddy_iterations $other_eddy_opts
+ ## create xfm directory
  T $scriptdir/eddy_pars_to_xfm_dir.py ${tmpdir}/eddy_out.eddy_parameters ${tmpdir}/dti_ecc.mat 
+ ## rename output
  T mv $tmpdir/eddy_out.nii.gz $tmpdir/dti_ecc.nii.gz 
  T fslmaths $tmpdir/dti_ecc.nii.gz $outdir/mc_unwarped_${dti}
 fi
 
-#------------- adjusting the bvecs  ----------------#
+#------------- rotating the bvecs  ----------------#
+#TODO: move to a separate script
 
-## clear and make output files
+## clear and make output motion parameter files
 for i in translation.par rotation.par scale.par skew.par ; do 
  if [ -e ${tmpdir}/${i} ] ; then rm -Rf ${tmpdir}/${i}; fi
  touch $tmpdir/${i};
@@ -210,7 +205,6 @@ while [ $i -lt $dtidim4 ]; do ## loop through DWIs
  echo $v | awk '{print $7,$8,$9}' >> $tmpdir/scale.par
  echo $v | awk '{print $10,$11,$12}' >> $tmpdir/skew.par
 
-
  i=`expr $i + 1`
 done ## end while loop across DWIs
 
@@ -222,7 +216,7 @@ ii=1
 rm -f $tmpdir/bvec_ecc
 touch $tmpdir/bvec_ecc
 
-while [ $ii -le ${numbvecs} ] ; do
+while [ $ii -le ${numbvecs} ] ; do # loop through dwis
     
  izeroindexed=`expr $ii - 1`
 
@@ -249,7 +243,8 @@ while [ $ii -le ${numbvecs} ] ; do
  rY=`echo "scale=7;  (${m21} * $X) + (${m22} * $Y) + (${m23} * $Z)" | bc -l`
  rZ=`echo "scale=7;  (${m31} * $X) + (${m32} * $Y) + (${m33} * $Z)" | bc -l`
 
- echo $X $Y $Z to $rX $rY $rZ via $matrix
+ # uncomment next line if you want to check the rotation math
+ # echo $X $Y $Z to $rX $rY $rZ via $matrix
 
  # using 'paste' for horizontal concatenation of the corrected vectors
  (echo $rX;echo $rY;echo $rZ) | paste $tmpdir/bvec_ecc - > $tmpdir/rotate_bvecs_tempfile.txt
@@ -283,6 +278,9 @@ T cp $tmpdir/dti_ecc.mat/* $outdir/dti_ecc.mat/
 if [ "$method" = "eddy_with_topup" ]; then
  supplemental_report_params="-i $indexfile"
 fi
+
+
+#--------------- generate report ------------#
 
 if [ "$generate_report" != "n" ] ; then 
  T $scriptdir/motion_correct_report.sh -t $tmpdir -r $reportdir -o $outdir -k $dti -m $method $supplemental_report_params
