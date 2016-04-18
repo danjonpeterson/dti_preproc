@@ -1,5 +1,22 @@
 #! /bin/sh
 
+<<<<<<< HEAD
+
+#---------variables and defaults---------#
+sl=10		                    # default signal loss threshold
+direction=y		            # default distortion direction
+tmpdir=temp-unwarp_fieldmap         # name of directory for intermediate files
+LF=$tmpdir/unwarp_fieldmap.log      # default log filename
+te=93.46                            # field map TE
+esp=.567                            # field map echo spacing
+reg=1                               # coregister between fieldmap and DTI data
+outdir=.                            # put output in PWD
+generate_report=y                   # generate a report 
+reportdir=$tmpdir/report    # directory for html report
+scriptdir=`dirname $0`
+
+=======
+>>>>>>> master
 usage_exit() {
       cat <<EOF
 
