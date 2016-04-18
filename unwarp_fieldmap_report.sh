@@ -8,6 +8,7 @@ tmpdir=temp-unwarp_fieldmap                 # name of directory for intermediate
 reportdir=unwarp_fieldmap_report 	    # report dir
 logfile_name=unwarp_fieldmap_report.log     # Log file 
 sl=.900                                     # signal loss threshold
+scriptdir=`dirname $0`
 
 
 #----------- Utility Functions ----------#
@@ -64,7 +65,6 @@ done;
 LF=$reportdir/$logfile_name
 RF=$reportdir/unwarp_fieldmap_report
 
-SCRIPTDIR=`dirname $0`
 
 if [ -e $reportdir ]; then /bin/rm -Rf $reportdir;fi
 mkdir -p $reportdir
@@ -89,7 +89,7 @@ T fslmaths $tmpdir/native_fmap_ph_filtered -sub $v -add 10 -mas $tmpdir/native_f
 T fslstats $reportdir/fmap_overlay -P 5 -P 95
 v=`fslstats $reportdir/fmap_overlay -P 5 -P 95`
 T overlay 0 0 $tmpdir/native_fmap_mag -a $reportdir/fmap_overlay $v $reportdir/fmap_overlay
-T $SCRIPTDIR/image_to_gif.sh $reportdir/fmap_overlay $reportdir/fmap+mag.gif
+T $scriptdir/image_to_gif.sh $reportdir/fmap_overlay $reportdir/fmap+mag.gif
 
 T /bin/cp ${FSLDIR}/etc/luts/ramp.gif $reportdir/ramp.gif
 T /bin/cp ${FSLDIR}/etc/luts/ramp2.gif $reportdir/ramp2.gif
@@ -105,22 +105,22 @@ q=`echo $O | awk '{print $4}'`
 p=`echo "scale=1; $p * -1" | bc`
 T fslmaths $tmpdir/unwarp_shift -mul -1 $reportdir/shiftmap_overlay
 T overlay 1 0 $tmpdir/coregistered_fmap_mag_brain -a $tmpdir/unwarp_shift 0 $q $reportdir/shiftmap_overlay 0 $p $reportdir/shiftmap_overlay
-T $SCRIPTDIR/image_to_gif.sh $reportdir/shiftmap_overlay $reportdir/unwarp_shift+mag.gif
+T $scriptdir/image_to_gif.sh $reportdir/shiftmap_overlay $reportdir/unwarp_shift+mag.gif
 
 echo \#\# Unwarping shift map in voxels >> ${RF}.Rmd
 echo "-$p <IMG src=./ramp2.gif width=106 height=14 border=0 align=middle> 0 <IMG src=./ramp.gif width=106 height=14 border=0 align= middle >$q (positive values indicate warps in the posterior direction)"  >>  ${RF}.Rmd
 echo "![](unwarp_shift+mag.gif) \n"  >> ${RF}.Rmd
 
 T flirt -in $tmpdir/rewarped_fmap_mag_brain_siglossed -ref $tmpdir/native_S0_brain -applyxfm -init $tmpdir/fieldmap_to_dti.mat -o $reportdir/rewarped_mag
-T $SCRIPTDIR/image_to_gif.sh $reportdir/rewarped_mag $reportdir/coregistered_rewarped_fmap_mag_brain_siglossed.gif
-T $SCRIPTDIR/image_to_gif.sh $tmpdir/native_S0 $reportdir/native_S0.gif
+T $scriptdir/image_to_gif.sh $reportdir/rewarped_mag $reportdir/coregistered_rewarped_fmap_mag_brain_siglossed.gif
+T $scriptdir/image_to_gif.sh $tmpdir/native_S0 $reportdir/native_S0.gif
 T whirlgif -o $reportdir/native_movie2.gif -loop -time 50 $reportdir/native_S0.gif $reportdir/coregistered_rewarped_fmap_mag_brain_siglossed.gif
 
 echo \#\# Registration of brain images between original b=0 and rewarped magnitude image  >> ${RF}.Rmd
 echo "![](native_movie2.gif) \n"  >> ${RF}.Rmd
 
-T $SCRIPTDIR/image_to_gif.sh $tmpdir/unwarped_S0 $reportdir/unwarped_S0.gif
-T $SCRIPTDIR/image_to_gif.sh $tmpdir/native_S0 $reportdir/native_S0.gif
+T $scriptdir/image_to_gif.sh $tmpdir/unwarped_S0 $reportdir/unwarped_S0.gif
+T $scriptdir/image_to_gif.sh $tmpdir/native_S0 $reportdir/native_S0.gif
 T whirlgif -o $reportdir/S0_movie2.gif -loop -time 50 $reportdir/unwarped_S0.gif $reportdir/native_S0.gif
 
 echo \#\# Uncorrected and corrected b=0 images  >> ${RF}.Rmd
@@ -135,7 +135,7 @@ echo \#\# Uncorrected, corrected b=0 images and a fieldmap magnitude image >> ${
 echo "![](movie3.gif) \n"  >> ${RF}.Rmd
 
 T overlay 1 0 $tmpdir/unwarped_S0 -a $tmpdir/coregistered_fmap_sigloss $sl 1 $reportdir/sigloss_overlay
-T $SCRIPTDIR/image_to_gif.sh $reportdir/sigloss_overlay $reportdir/S0+sigloss.gif
+T $scriptdir/image_to_gif.sh $reportdir/sigloss_overlay $reportdir/S0+sigloss.gif
 
 echo \#\# Corrected b0 image and signal loss estimated from fieldmap  >> ${RF}.Rmd
 echo "![](S0+sigloss.gif) \n"  >> ${RF}.Rmd

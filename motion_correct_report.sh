@@ -11,7 +11,7 @@ logfile_name=motion_correct_report.log    # Log file
 outdir=.
 dti=DTI_64.nii.gz
 scale_and_skew=n
-SCRIPTDIR=`dirname $0`
+scriptdir=`dirname $0`
 
 
 #----------- Utility Functions ----------#
@@ -161,14 +161,14 @@ echo "![](rotation.png) \n" >> ${RF}.Rmd
 
 echo "##Diffusion Volume Images" >> ${RF}.Rmd
 
-T $SCRIPTDIR/image_to_movie.sh $dti $reportdir/uncorrected_movie.gif
+T $scriptdir/image_to_movie.sh $dti $reportdir/uncorrected_movie.gif
 echo "__Uncorrected diffusion volumes__ \n " >> ${RF}.Rmd
 echo "![](uncorrected_movie.gif) \n" >> ${RF}.Rmd
 
 if [ "$method" = "eddy_with_topup" ]; then
- T $SCRIPTDIR/image_to_movie.sh $tmpdir/dti_ecc.nii.gz $reportdir/corrected_movie.gif
+ T $scriptdir/image_to_movie.sh $tmpdir/dti_ecc.nii.gz $reportdir/corrected_movie.gif
 else
- T $SCRIPTDIR/image_to_movie.sh $outdir/mc_`basename $dti` $reportdir/corrected_movie.gif
+ T $scriptdir/image_to_movie.sh $outdir/mc_`basename $dti` $reportdir/corrected_movie.gif
 fi
 
 echo "__Corrected diffusion volumes __\n " >> ${RF}.Rmd

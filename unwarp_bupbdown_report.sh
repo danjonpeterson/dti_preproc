@@ -7,6 +7,8 @@
 tmpdir=temp-unwarp_bupbdown                 # name of directory for intermediate files
 reportdir=report-unwarp_bupbdown 	    # report dir
 logfile_name=unwarp_bupbdown_report.log     # Log file 
+scriptdir=`dirname $0`
+
 
 
 #----------- Utility Functions ----------#
@@ -57,7 +59,6 @@ done;
 LF=$reportdir/$logfile_name
 RF=$reportdir/unwarp_bupbdown_report
 
-SCRIPTDIR=`dirname $0`
 
 if [ -e $reportdir ]; then /bin/rm -Rf $reportdir;fi
 mkdir -p $reportdir
@@ -72,12 +73,12 @@ echo "    force_captions: TRUE" >> ${RF}.Rmd
 echo "---" >> ${RF}.Rmd
 
 # warped S0s gif
-T $SCRIPTDIR/image_to_movie.sh $tmpdir/S0_images.nii.gz $reportdir/native_S0s.gif
+T $scriptdir/image_to_movie.sh $tmpdir/S0_images.nii.gz $reportdir/native_S0s.gif
 echo "## Native, warped S0 image " >> ${RF}.Rmd 
 echo "![](native_S0s.gif) \n" >> ${RF}.Rmd
 
 # unwarped B0s gif
-T $SCRIPTDIR/image_to_movie.sh $tmpdir/unwarped_S0_images.nii.gz $reportdir/unwarped_S0s.gif
+T $scriptdir/image_to_movie.sh $tmpdir/unwarped_S0_images.nii.gz $reportdir/unwarped_S0s.gif
 echo "## Unwarped S0 image " >> ${RF}.Rmd 
 echo "![](unwarped_S0s.gif) \n" >> ${RF}.Rmd
 
