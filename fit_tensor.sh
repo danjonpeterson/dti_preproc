@@ -18,11 +18,12 @@ usage_exit() {
     -k <img>    : DTI 4D data
     -b <bvals.txt> : a text file containing a list of b-values
     -r <bvecs.txt> : a text file containing a list of b-vectors
+    -M <img>       : mask file for diffusion images 
+
   
     Option: 
     -s <number>       : noise level for restore
                         (default: calculate based on linear tensor residuals)
-    -M <img>          : mask file for dti image. Required for sigma calculation 
     -f                : use dtifit instead of RESTORE in camino 
     -o <dir>          : output directory
     -F                : fast mode for testing (minimal iterations)
@@ -50,7 +51,7 @@ reportdir=$tmpdir/report            # directory for html report
 scriptdir=`dirname $0`
 
 #------------- Parse Parameters  --------------------#
-[ "$3" = "" ] && usage_exit
+[ "$4" = "" ] && usage_exit
 
 while getopts k:b:r:M:o:s:FfE OPT
  do
@@ -127,6 +128,11 @@ mkdir -p $outdir
 if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
 mkdir $tmpdir
 touch $LF
+
+echo "Logfife for command: " >> $LF
+echo $0 $@ >> $LF
+echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
+echo "" >> $LF
 
 #------------- verifying inputs ----------------#
 

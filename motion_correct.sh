@@ -119,6 +119,11 @@ mkdir $tmpdir
 LF=$tmpdir/$log_filename
 touch $LF
 
+echo "Logfife for command: " >> $LF
+echo $0 $@ >> $LF
+echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
+echo "" >> $LF
+
 #------------- verifying inputs ----------------#
 
 if [ `test_varimg $dti` -eq 0 ]; then

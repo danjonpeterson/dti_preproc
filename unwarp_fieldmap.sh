@@ -120,6 +120,11 @@ if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
 mkdir $tmpdir
 touch $LF
 
+echo "Logfife for command: " >> $LF
+echo $0 $@ >> $LF
+echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
+echo "" >> $LF
+
 #------------- verifying inputs ----------------#
 
 if [ `test_varimg $diffusion` -eq 0 ]; then
