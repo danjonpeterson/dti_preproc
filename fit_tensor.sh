@@ -7,7 +7,7 @@ usage_exit() {
 
   Example Usage:
   
-    fit_tensor.sh -k out/mc_unwarped_raw_diffusion.nii.gz -b bval.txt -r bvec.txt 
+    fit_tensor.sh -k out/mc_unwarped_raw_diffusion.nii.gz -b bval.txt -r bvec.txt -M brain_mask.nii.gz
 
     Required:
     -k <img>    : DTI 4D data
@@ -207,9 +207,14 @@ if [ "$method" = "restore" ] ; then
 
  T -r "cat $tmpdir/outlier_map.Bbyte | voxel2image -inputdatatype byte -components $dwi_count -header $data -outputroot $tmpdir/dti_outlier_map_"
 
-# T -r "cat $tmpdir/residual_map.Bdouble | voxel2image -inputdatatype double -components $total_count -header $data -outputroot $tmpdir/residual_map_"
+ # T -r "cat $tmpdir/residual_map.Bdouble | voxel2image -inputdatatype double -components $total_count -header $data -outputroot $tmpdir/residual_map_"
 
  T -r "cat $tmpdir/restore_tensor.Bfloat | dteig | voxel2image -components 12 -inputdatatype double -header $data -outputroot $tmpdir/dti_eigsys_ "
+
+ # scale tensor and eigensystem and MD by 10^6 so that the units are consistent with FSL
+ for s in $tmpdir/dti_restore_tensor_* $tmpdir/dti_eigsys_* $tmpdir/dti_MD.nii.gz ; do
+  T fslmaths $s -mul 1e6 $s
+ done
 
  T imcp $tmpdir/dti_restore_tensor_0001.nii.gz $tmpdir/dti_exit_code
  T imcp $tmpdir/dti_restore_tensor_0002.nii.gz $tmpdir/dti_log_s0
@@ -220,6 +225,8 @@ if [ "$method" = "restore" ] ; then
  T imcp $tmpdir/dti_restore_tensor_0007.nii.gz $tmpdir/dti_dyz
  T imcp $tmpdir/dti_restore_tensor_0008.nii.gz $tmpdir/dti_dzz
 
+ T fslmaths $tmpdir/dti_log_s0 -exp $tmpdir/dti_S0
+
  T imcp $tmpdir/dti_eigsys_0001.nii.gz $tmpdir/dti_L1
  T imcp $tmpdir/dti_eigsys_0005.nii.gz $tmpdir/dti_L2
  T imcp $tmpdir/dti_eigsys_0009.nii.gz $tmpdir/dti_L3
@@ -228,7 +235,12 @@ if [ "$method" = "restore" ] ; then
  T fslmerge -t $tmpdir/dti_V2 $tmpdir/dti_eigsys_0006.nii.gz $tmpdir/dti_eigsys_0007.nii.gz $tmpdir/dti_eigsys_0008.nii.gz
  T fslmerge -t $tmpdir/dti_V3 $tmpdir/dti_eigsys_0010.nii.gz $tmpdir/dti_eigsys_0011.nii.gz $tmpdir/dti_eigsys_0012.nii.gz
 
-# pad the outlier map so that it can be overlaid on the diffusion images
+ T fslmerge -t $tmpdir/dti_tensor $tmpdir/dti_dxx $tmpdir/dti_dxy $tmpdir/dti_dxz $tmpdir/dti_dyy $tmpdir/dti_dyz $tmpdir/dti_dzz
+
+ T fslmaths $tmpdir/dti_exit_code.nii.gz -sub 1000 -thr 0 $tmpdir/dti_outlier_count.nii.gz
+
+
+ # pad the outlier map with mask images so that it can be overlaid on the diffusion images (same number of volumes)
  T imcp $mask $tmpdir/outlier_pad
  for i in `seq 2 $s0_count`; do
   T fslmerge -t $tmpdir/outlier_pad.nii.gz $mask $tmpdir/outlier_pad.nii.gz
@@ -243,14 +255,17 @@ if [ "$method" = "restore" ] ; then
  T rm $tmpdir/dti_restore_tensor_????.nii.gz
  T rm $tmpdir/dti_eigsys_????.nii.gz
 
+ ## copy restore-specific files to output directory
+ T imcp $tmpdir/dti_outlier_count.nii.gz $tmpdir/dti_outlier_map.nii.gz $outdir/
+
 fi
 
 ## copy files to output directory
- T imcp $tmpdir/dti_FA $tmpdir/dti_MD $tmpdir/dti_dxx $tmpdir/dti_dxy $tmpdir/dti_dxz $tmpdir/dti_dyy $tmpdir/dti_dyz $tmpdir/dti_dzz $tmpdir/dti_L1 $tmpdir/dti_L2 $tmpdir/dti_L3 $tmpdir/dti_V1 $tmpdir/dti_V2 $tmpdir/dti_V3 $outdir/
+ T imcp $tmpdir/dti_FA $tmpdir/dti_MD $tmpdir/dti_tensor $tmpdir/dti_L1 $tmpdir/dti_L2 $tmpdir/dti_L3 $tmpdir/dti_V1 $tmpdir/dti_V2 $tmpdir/dti_V3 $tmpdir/dti_S0 $outdir/
 
 
 if [ "$generate_report" != "n" ] ; then 
  T $scriptdir/fit_tensor_report.sh -t $tmpdir -r $reportdir -o $outdir -k $data -m $method -n $s0_count
 fi
 
-cp $reportdir/*.html $outdir/
+T cp $reportdir/*.html $outdir/
