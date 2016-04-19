@@ -1,10 +1,5 @@
 #! /bin/sh
 
-# example usage
-# T fit_tensor.sh -k $outdir/resliced_$dti -b $bval -r $outdir/bvec_ecc -m $mask -o $outdir
-
-
-
 usage_exit() {
       cat <<EOF
 
@@ -129,10 +124,7 @@ if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
 mkdir $tmpdir
 touch $LF
 
-echo "Logfife for command: " >> $LF
-echo $0 $@ >> $LF
-echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
-echo "" >> $LF
+
 
 #------------- verifying inputs ----------------#
 
@@ -163,6 +155,11 @@ if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw wo
 
 
 #-------------- fitting the tensor ------------------#
+
+echo "Logfife for command: " >> $LF
+echo $0 $@ >> $LF
+echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
+echo "" >> $LF
 
 
 dtidim4=`fslval $data dim4`

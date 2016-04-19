@@ -1,7 +1,5 @@
 #! /bin/sh
 
-# TODO: fix options, implement fast, get rid of flirt, MCflirt
-
 usage_exit() {
       cat <<EOF
 
@@ -119,10 +117,7 @@ mkdir $tmpdir
 LF=$tmpdir/$log_filename
 touch $LF
 
-echo "Logfife for command: " >> $LF
-echo $0 $@ >> $LF
-echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
-echo "" >> $LF
+
 
 #------------- verifying inputs ----------------#
 
@@ -152,6 +147,11 @@ fi
 
 
 #------------- Motion correction ----------------#
+
+echo "Logfife for command: " >> $LF
+echo $0 $@ >> $LF
+echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
+echo "" >> $LF
 
 if [ "$fast_testing" = "y" ]; then 
   eddy_iterations=0

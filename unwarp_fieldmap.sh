@@ -1,22 +1,5 @@
 #! /bin/sh
 
-<<<<<<< HEAD
-
-#---------variables and defaults---------#
-sl=10		                    # default signal loss threshold
-direction=y		            # default distortion direction
-tmpdir=temp-unwarp_fieldmap         # name of directory for intermediate files
-LF=$tmpdir/unwarp_fieldmap.log      # default log filename
-te=93.46                            # field map TE
-esp=.567                            # field map echo spacing
-reg=1                               # coregister between fieldmap and DTI data
-outdir=.                            # put output in PWD
-generate_report=y                   # generate a report 
-reportdir=$tmpdir/report    # directory for html report
-scriptdir=`dirname $0`
-
-=======
->>>>>>> master
 usage_exit() {
       cat <<EOF
 
@@ -137,10 +120,7 @@ if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
 mkdir $tmpdir
 touch $LF
 
-echo "Logfife for command: " >> $LF
-echo $0 $@ >> $LF
-echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
-echo "" >> $LF
+
 
 #------------- verifying inputs ----------------#
 
@@ -161,17 +141,20 @@ if [ `test_varimg $mask` -eq 0 ]; then
 fi
 
 if [ "$esp" = "PARSE_ERROR" ]; then
- echo "ERROR: dwell time: not set"
- usage_exit
+ error_exit "ERROR: dwell time: not set"
 fi
 
 if [ "$te" = "PARSE_ERROR" ]; then
- echo "ERROR: TE not set"
- usage_exit
+ error_exit "ERROR: TE not set"
 fi
 
 
 #------------- Distortion correction using fieldmap----------------#
+
+echo "Logfife for command: " >> $LF
+echo $0 $@ >> $LF
+echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
+echo "" >> $LF
 
 ## copy phase and magnitude image to temporary directory
 T fslmaths $dph $tmpdir/native_fmap_ph

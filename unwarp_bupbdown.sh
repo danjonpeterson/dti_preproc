@@ -106,10 +106,7 @@ if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
 mkdir $tmpdir
 touch $LF
 
-echo "Logfife for command: " >> $LF
-echo $0 $@ >> $LF
-echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
-echo "" >> $LF
+
 
 ## make the output directory
 T mkdir -p $outdir
@@ -138,6 +135,11 @@ if [ `test_varfile $bval` -eq 0 ] && [ -z "$S0_count" ]; then
 fi
 
 #--------- Distortion correction using blip up-blip down S0 images-------#
+
+echo "Logfife for command: " >> $LF
+echo $0 $@ >> $LF
+echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
+echo "" >> $LF
 
 if [ "$fast_testing" = "y" ]; then
   configfile=$scriptdir/b02b0_fast.cnf
