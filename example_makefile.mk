@@ -47,7 +47,7 @@ define dti_usage
 	@echo
 endef
 
-tensor: ${OUTDIR}/fa.nii.gz
+tensor: ${OUTDIR}/dti_FA.nii.gz
 
 ifeq ($(SDC_METHOD),TOPUP)
 
@@ -75,7 +75,7 @@ $(error ERROR: neither fieldmap for FUGUE nor acquisition parameter file for TOP
 endif
 
 # fit the tensor
-${OUTDIR}/fa.nii.gz: ${OUTDIR}/mc_unwarped_raw_diffusion.nii.gz bval.txt 
+${OUTDIR}/dti_FA.nii.gz: ${OUTDIR}/mc_unwarped_raw_diffusion.nii.gz bval.txt 
 	${BINDIR}/dti_preproc/fit_tensor.sh -k ${OUTDIR}/mc_unwarped_raw_diffusion.nii.gz -b bval.txt -r ${OUTDIR}/bvec_mc.txt -M ${OUTDIR}/unwarped_brain_mask.nii.gz -o ${OUTDIR}
 
 #TODO: take ${OUTDIR} values safely

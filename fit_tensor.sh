@@ -211,8 +211,8 @@ if [ "$method" = "restore" ] ; then
 
  T -r "cat $tmpdir/restore_tensor.Bfloat | dteig | voxel2image -components 12 -inputdatatype double -header $data -outputroot $tmpdir/dti_eigsys_ "
 
- # scale tensor and eigensystem and MD by 10^6 so that the units are consistent with FSL
- for s in $tmpdir/dti_restore_tensor_* $tmpdir/dti_eigsys_* $tmpdir/dti_MD.nii.gz ; do
+ # scale tensor, eigenvalues, and MD by 10^6 so that the units are consistent with FSL
+ for s in $tmpdir/dti_restore_tensor_* $tmpdir/dti_eigsys_000{1,5,9}.nii.gz $tmpdir/dti_MD.nii.gz ; do
   T fslmaths $s -mul 1e6 $s
  done
 
