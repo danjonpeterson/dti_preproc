@@ -1,19 +1,5 @@
 #! /bin/sh
 
-#example usage
-#fit_tensor_report.sh -t temp-fit_tensor -r report-fit_tensor -o dti_v2 -k DTI_64.nii.gz -m restore -n 2
-
-#---------variables and defaults---------#
-tmpdir=temp-fit_tensor                 # name of directory for intermediate files
-reportdir=fit_tensor_report	       # report dir
-logfile_name=fit_tensor_report.log     # Log file 
-method=restore
-outdir=.
-dti=DTI_64.nii.gz
-scriptdir=`dirname $0`
-s0_count=2
-
-#----------- Utility Functions ----------#
 usage_exit() {
       cat <<EOF
 
@@ -28,6 +14,18 @@ EOF
     exit 1;
 }
 
+#---------variables and defaults---------#
+tmpdir=temp-fit_tensor                 # name of directory for intermediate files
+reportdir=fit_tensor_report            # report dir
+logfile_name=fit_tensor_report.log     # Log file 
+method=restore
+outdir=.
+dti=DTI_64.nii.gz
+scriptdir=`dirname $0`
+s0_count=2
+
+
+#----------- Utility Functions ----------#
 
 T () {
 

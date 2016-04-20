@@ -15,7 +15,6 @@ usage_exit() {
     -r <bvecs.txt> : a text file containing a list of b-vectors
     -M <img>       : mask file for diffusion images 
 
-  
     Option: 
     -s <number>       : noise level for restore
                         (default: calculate based on linear tensor residuals)
@@ -23,8 +22,6 @@ usage_exit() {
     -o <dir>          : output directory
     -F                : fast mode for testing (minimal iterations)
     -E                : don't run the commands, just echo them
-
-
 
 EOF
     exit 1;
@@ -212,7 +209,7 @@ if [ "$method" = "restore" ] ; then
  T -r "cat $tmpdir/restore_tensor.Bfloat | dteig | voxel2image -components 12 -inputdatatype double -header $data -outputroot $tmpdir/dti_eigsys_ "
 
  # scale tensor, eigenvalues, and MD by 10^6 so that the units are consistent with FSL
- for s in $tmpdir/dti_restore_tensor_* $tmpdir/dti_eigsys_000{1,5,9}.nii.gz $tmpdir/dti_MD.nii.gz ; do
+ for s in $tmpdir/dti_restore_tensor_000{3,4,5,6,7,8}.nii.gz $tmpdir/dti_eigsys_000{1,5,9}.nii.gz $tmpdir/dti_MD.nii.gz ; do
   T fslmaths $s -mul 1e6 $s
  done
 
