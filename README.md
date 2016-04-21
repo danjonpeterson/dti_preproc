@@ -1,6 +1,5 @@
 # *dti_preproc* - IBIC DTI preprocessing scripts
 
-----
 ## Motivation
 This project is a collection of scripts and utilities aimed at simplifing DTI preprocessing.
 
@@ -11,21 +10,18 @@ The main features of this package are:
   (both fieldmap-based unwarping and “blip-up, blip-down” unwarping)
 * Support for processing pipelines based on GNU make
 
-These scripts are intended implement ‘state of the art’ preprocessing options by default. This includes motion correction with fsl’s ‘eddy’, with rotation of the b-vectors, and tensor estimation using RESTORE.
+These scripts are intended implement ‘state of the art’ preprocessing options by default. This includes motion correction with FSL’s ‘eddy’, with rotation of the b-vectors, and tensor estimation using RESTORE.
 
-----
 
 ##Preparing the Data
 
    This script assumes all B0s and DWIs are concatenated into one 4d image, with the B0 images first. Depending on the type of EPI unwarping required, you may need to create an "acquisition parameter file" and/or an "index file" in FSL format, described [here](http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/eddy/Faq#Why_do_I_need_more_than_two_rows_in_my_--acqp_file). You will also need to generate an initial brain mask.
 
-----
 
 ##Make-Based Pipeline:
 
    These scripts can be integrated into a processing pipeline based on ‘GNU Make’, using the approach described in [Askren et al 2016](http://journal.frontiersin.org/article/10.3389/fninf.2016.00002/full). **example_makefile.mk** can serve as a template, but will need to be modified for your particular environment
 
-----
 
 ##Files in the Repository
 
@@ -63,7 +59,6 @@ These are called by the main scripts but may be invoked on their own
 * **b02b0_fast.cnf** configuration file for topup that does a minimal amount of processing. Used for debugging/testing in “fast mode”
 * **example_makefile.mk** an example makefile for gnu-make based processing
 
-----
 
 ##Dependencies
 
@@ -74,7 +69,6 @@ These are called by the main scripts but may be invoked on their own
 * [**pandoc**](http://pandoc.org/installing.html)
 
 ----
-
 
 ##TO DO
 * Correct min/max display info in header of output images
