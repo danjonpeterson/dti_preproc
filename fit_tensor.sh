@@ -234,6 +234,7 @@ if [ "$method" = "restore" ] ; then
 
  T fslmerge -t $tmpdir/dti_tensor $tmpdir/dti_dxx $tmpdir/dti_dxy $tmpdir/dti_dxz $tmpdir/dti_dyy $tmpdir/dti_dyz $tmpdir/dti_dzz
 
+
  T fslmaths $tmpdir/dti_exit_code.nii.gz -sub 1000 -thr 0 $tmpdir/dti_outlier_count.nii.gz
 
 
