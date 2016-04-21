@@ -35,10 +35,10 @@ These scripts are intended implement ‘state of the art’ preprocessing option
 ###report generation
 These are called by the main scripts but may be invoked on their own
 
-* **unwarp\_bupbdown\_report.sh**  
-* **motion\_correct\_report.sh**   
-* **unwarp\_fieldmap\_report.sh**  
-* **fit\_tensor\_report.sh**       
+* **unwarp\_bupbdown\_report.sh** [example](http://danjonpeterson.github.io/unwarp_bupbdown_report.html)  
+* **motion\_correct\_report.sh** [example](http://danjonpeterson.github.io/motion_correct_report.html)
+* **unwarp\_fieldmap\_report.sh** [example](http://danjonpeterson.github.io/unwarp_fieldmap_report.html)
+* **fit\_tensor\_report.sh** [example](http://danjonpeterson.github.io/fit_tensor_report.html)
 
 
 ###utilites for preparing the data
