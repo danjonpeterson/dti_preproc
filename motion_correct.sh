@@ -9,7 +9,7 @@ usage_exit() {
 
   Usage:
   
-    $CMD -k <img> -b <bvals.txt> -r <bvecs.txt> [option]
+    $CMD -k <img> -b <bvals.txt> -r <bvecs.txt> -M <brain_mask.nii.gz> [option]
       : corrects motion   
   
     -k <img>    : DTI 4D data
