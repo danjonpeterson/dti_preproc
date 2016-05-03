@@ -69,14 +69,14 @@ RF=$reportdir/unwarp_fieldmap_report
 if [ -e $reportdir ]; then /bin/rm -Rf $reportdir;fi
 mkdir -p $reportdir
 
-echo --- > ${RF}.Rmd
-echo title: QA report for correction of magnetic suceptibility-induced distortions using an aquired fieldmap >> ${RF}.Rmd
-echo output: >> ${RF}.Rmd
-echo html_document: >> ${RF}.Rmd
-echo     keep_md: yes >> ${RF}.Rmd
-echo     toc: yes >> ${RF}.Rmd 
-echo     force_captions: TRUE  >> ${RF}.Rmd 
-echo --- >> ${RF}.Rmd
+echo "---" > ${RF}.Rmd
+echo "title: QA report for correction of magnetic suceptibility-induced distortions using an aquired fieldmap " >> ${RF}.Rmd
+echo "output:"           >> ${RF}.Rmd
+echo "  html_document: " >> ${RF}.Rmd
+echo "    keep_md: yes " >> ${RF}.Rmd
+echo "    toc: yes "     >> ${RF}.Rmd 
+echo "    force_captions: TRUE " >> ${RF}.Rmd 
+echo "---" >> ${RF}.Rmd
 
 echo \# DTI UNWARP FIELDMAP REPORT >> ${RF}.Rmd
 
@@ -111,7 +111,7 @@ echo \#\# Unwarping shift map in voxels >> ${RF}.Rmd
 echo "-$p <IMG src=./ramp2.gif width=106 height=14 border=0 align=middle> 0 <IMG src=./ramp.gif width=106 height=14 border=0 align= middle >$q (positive values indicate warps in the posterior direction)"  >>  ${RF}.Rmd
 echo "![](unwarp_shift+mag.gif) \n"  >> ${RF}.Rmd
 
-T flirt -in $tmpdir/rewarped_fmap_mag_brain_siglossed -ref $tmpdir/native_S0_brain -applyxfm -init $tmpdir/fieldmap_to_dti.mat -o $reportdir/rewarped_mag
+T flirt -in $tmpdir/rewarped_fmap_mag_brain_siglossed -ref $tmpdir/native_S0_brain -applyxfm -init $tmpdir/fieldmap_to_diffusion.mat -o $reportdir/rewarped_mag
 T $scriptdir/image_to_gif.sh $reportdir/rewarped_mag $reportdir/coregistered_rewarped_fmap_mag_brain_siglossed.gif
 T $scriptdir/image_to_gif.sh $tmpdir/native_S0 $reportdir/native_S0.gif
 T whirlgif -o $reportdir/native_movie2.gif -loop -time 50 $reportdir/native_S0.gif $reportdir/coregistered_rewarped_fmap_mag_brain_siglossed.gif
@@ -128,10 +128,10 @@ echo "![](S0_movie2.gif) \n"  >> ${RF}.Rmd
 
 T fslstats $tmpdir/coregistered_fmap_mag_brain.nii.gz -P 20 -P 90
 v=`fslstats $tmpdir/coregistered_fmap_mag_brain.nii.gz -P 20 -P 90`
-T image_to_gif.sh $tmpdir/coregistered_fmap_mag $reportdir/coregistered_fmap_mag.gif -i $v
-T whirlgif -o $reportdir/movie3.gif -loop -time 50  $reportdir/unwarped_S0.gif $reportdir/native_S0.gif $reportdir/coregistered_fmap_mag.gif 
+T $scriptdir/image_to_gif.sh $tmpdir/coregistered_fmap_mag $reportdir/coregistered_fmap_mag.gif -i $v
+T whirlgif -o $reportdir/movie3.gif -loop -time 50  $reportdir/unwarped_S0.gif $reportdir/coregistered_fmap_mag.gif 
 
-echo \#\# Uncorrected, corrected b=0 images and a fieldmap magnitude image >> ${RF}.Rmd
+echo \#\# Corrected b=0 images and the fieldmap magnitude image >> ${RF}.Rmd
 echo "![](movie3.gif) \n"  >> ${RF}.Rmd
 
 T overlay 1 0 $tmpdir/unwarped_S0 -a $tmpdir/coregistered_fmap_sigloss $sl 1 $reportdir/sigloss_overlay
