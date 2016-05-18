@@ -85,7 +85,9 @@ command -v pandoc > /dev/null 2>&1 || { error_exit "ERROR: pandoc required for r
 command -v R > /dev/null 2>&1 || { error_exit "ERROR: R required for report, but not found (https://www.r-project.org). Aborting."; } 
 
 rmarkdown_test=`R -q -e "\"rmarkdown\" %in% rownames(installed.packages())" | grep 1`
-if [ "$rmarkdown_test" != "[1] TRUE" ]; then error_exit "ERROR: R package 'rmarkdown' required for report, but not found" ;fi
+if [ "$rmarkdown_test" != "[1] TRUE" ]; then error_exit "ERROR: R package 'rmarkdown' required for report, but not found. 
+Try running this command in R: 
+install.packages(\"rmarkdown\") " ;fi
 
 #------------- Begin Report  ----------------#
 
