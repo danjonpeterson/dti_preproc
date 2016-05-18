@@ -60,7 +60,7 @@ bvec_rotation=y                   # rotate bvecs according to motion correction 
 configfile=b02b0.cnf              # config file. b02b0.cnf actually lives in ${FSLDIR}/etc/flirtsch/
 SL=10                             # signal loss threshold
 outdir=out                        # output directory
-LF=dti_preprocess.log             # default log filename
+LF=$outdir/dti_preproc.log        # default log filename
 mode=normal                       # run mode (normal,echo)
 fast_testing=n                    # run with minimal processing for testing
 scriptdir=`dirname $0`            # directory where dti_preproc scripts live
@@ -115,7 +115,7 @@ T () {                      # main shell commands are run through here
 
 error_exit (){      
     echo "$1" >&2   # Send message to stderr
-    echo "$1" > $LF # send message to log file
+    echo "$1" >> $LF # send message to log file
     exit "${2:-1}"  # Return a code specified by $2 or 1 by default.
 }
 
@@ -133,12 +133,18 @@ test_varfile (){  # test if a string is a valid file
 
 #------------- Setting things up ----------------#
 
+## make the output directory
+T mkdir -p $outdir
+
 ## clear, then make the logfile
 if [ -e $LF ]; then /bin/rm -f $LF ;fi
 touch $LF
 
-## make the output directory
-T mkdir -p $outdir
+echo "Logfife for command: " >> $LF
+echo $0 $@ >> $LF
+echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
+echo "" >> $LF
+
 
 if [ "$mode" = "echo" ]; then
   T -e "Running in echo mode - no actual processing done"
@@ -151,7 +157,7 @@ fi
 #------------- verifying inputs ----------------#
 
 if [ `test_varimg $diffusion` -eq 0 ]; then
- error_exit "ERROR: cannot find image for 4D raw diffusion data: $diffusion"
+  error_exit "ERROR: cannot find image for 4D raw diffusion data: $diffusion"
 else
   dtidim4=`fslval $diffusion dim4`
 fi
@@ -173,6 +179,22 @@ if [ `test_varimg $mask` -eq 0 ]; then
  error_exit "ERROR: cannot find mask image: $mask" 
 fi
 
+if [ "$method" = "topup" ]; then
+
+  if [ `test_varfile $index` -eq 0 ]; then error_exit "ERROR: $index is not a valid index file"; fi
+  if [ `test_varfile $acqparams` -eq 0 ]; then error_exit "ERROR: $acqparams is not a valid acquision parameters file"; fi
+
+elif [ "$method" = "fugue" ]; then
+
+  if [ `test_varimg $dph` -eq 0 ]; then error_exit "ERROR: cannot find image for fieldmap phase: $dph"; fi
+  if [ `test_varimg $mag` -eq 0 ]; then error_exit "ERROR: cannot find image for fieldmap magnitude: $mag"; fi
+  if [ `test_varimg $mag_mask` -eq 0 ]; then error_exit "ERROR: cannot find image for fieldmap magnitude mask: $mag_mask"; fi
+
+else
+  error_exit "ERROR: method \"$method\" is neither topup nor fugue"
+fi
+
+
 #------------- Motion and Distortion correction ----------------#
  
 if [ "$method" = "topup" ]; then
@@ -189,7 +211,7 @@ elif [ "$method" = "fugue" ]; then
 
   T -e "Unwarping distortions based on an acquired fieldmap"
 
-  T $scriptdir/motion_correct.sh -k $diffusion -b $bval -r $bvec -o $outdir -M $mask -m eddy $other_opts
+  T $scriptdir/motion_correct.sh -k $diffusion -b $bval -r $bvec -o $outdir -M $mask $other_opts
 
   T $scriptdir/unwarp_fieldmap.sh -k $outdir/mc_$diffusion -f $dph -m $mag -M $mask -p $mag_mask -o $outdir -s $SL -t $esp -e $te  $other_opts
 
@@ -210,4 +232,4 @@ fi
 T $scriptdir/fit_tensor.sh -k $diffusion -b $bval -r $bvec -M $outdir/unwarped_brain_mask.nii.gz -o $outdir $other_opts
 
 T -e "Inspect results with the following command:"
-T -e "firefox $outdir/*html "
+T -e "firefox $outdir/\*html "

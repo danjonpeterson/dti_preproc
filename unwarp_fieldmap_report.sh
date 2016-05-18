@@ -28,6 +28,8 @@ EOF
     exit 1;
 }
 
+#---------------- Utility Functions --------------#
+
 T () {
 
  E=0 
@@ -45,6 +47,13 @@ T () {
  echo  | tee -a $LF         # write an empty line to the console and log file
 }
 
+error_exit (){      
+    echo "$1" >&2      # Send message to stderr
+    echo "$1" >> $LF   # send message to log file
+    exit "${2:-1}"     # Return a code specified by $2 or 1 by default.
+}
+
+
 #------------- Parse Parameters  --------------------#
 
 while getopts t:r:s:o:m: OPT
@@ -60,14 +69,25 @@ while getopts t:r:s:o:m: OPT
 done;
 
 
-#------------- Begin report  --------------------#
+#------------- Setting things up  --------------------#
 
 LF=$reportdir/$logfile_name
 RF=$reportdir/unwarp_fieldmap_report
 
-
 if [ -e $reportdir ]; then /bin/rm -Rf $reportdir;fi
 mkdir -p $reportdir
+
+#------------- Check dependencies ----------------#
+
+command -v fsl > /dev/null 2>&1 || { error_exit "ERROR: FSL required for report, but not found (http://fsl.fmrib.ox.ac.uk/fsl). Aborting."; } 
+command -v whirlgif > /dev/null 2>&1 || { error_exit "ERROR: whirlgif required for report, but not found. Aborting."; } 
+command -v pandoc > /dev/null 2>&1 || { error_exit "ERROR: pandoc required for report, but not found (http://pandoc.org/). Aborting."; } 
+command -v R > /dev/null 2>&1 || { error_exit "ERROR: R required for report, but not found (https://www.r-project.org). Aborting."; } 
+
+rmarkdown_test=`R -q -e "\"rmarkdown\" %in% rownames(installed.packages())" | grep 1`
+if [ "$rmarkdown_test" != "[1] TRUE" ]; then error_exit "ERROR: R package 'rmarkdown' required for report, but not found" ;fi
+
+#------------- Begin Report  ----------------#
 
 echo "---" > ${RF}.Rmd
 echo "title: QA report for correction of magnetic suceptibility-induced distortions using an aquired fieldmap " >> ${RF}.Rmd

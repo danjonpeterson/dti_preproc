@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# make animated gifs out of a 4d stack
+# make animated gifs out of a 4d image stack
 #
 
 # Takes 1 input (input 4d image )

@@ -90,7 +90,7 @@ T () {                      # main shell commands are run through here
 
 error_exit (){      
     echo "$1" >&2   # Send message to stderr
-    echo "$1" > $LF # send message to log file
+    echo "$1" >> $LF # send message to log file
     exit "${2:-1}"  # Return a code specified by $2 or 1 by default.
 }
 
@@ -117,6 +117,14 @@ mkdir $tmpdir
 LF=$tmpdir/$log_filename
 touch $LF
 
+echo "Logfife for command: " >> $LF
+echo $0 $@ >> $LF
+echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
+echo "" >> $LF
+
+#------------- Check dependencies ----------------#
+
+command -v fsl > /dev/null 2>&1 || { error_exit "ERROR: FSL required, but not found (http://fsl.fmrib.ox.ac.uk/fsl). Aborting."; } 
 
 
 #------------- verifying inputs ----------------#
@@ -147,11 +155,6 @@ fi
 
 
 #------------- Motion correction ----------------#
-
-echo "Logfife for command: " >> $LF
-echo $0 $@ >> $LF
-echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
-echo "" >> $LF
 
 if [ "$fast_testing" = "y" ]; then 
   eddy_iterations=0

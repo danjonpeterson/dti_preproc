@@ -37,7 +37,7 @@ perm_vector=$@
 #-------------- utility functions ----------------3
 
 error_exit (){      
-    echo "$1" >&2   # Send message to stderr
+    echo "$1" > &2   # Send message to stderr
     exit "${2:-1}"  # Return a code specified by $2 or 1 by default.
 }
 

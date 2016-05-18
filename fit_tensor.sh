@@ -93,7 +93,7 @@ T () {
 
 error_exit (){      
     echo "$1" >&2   # Send message to stderr
-    echo "$1" > $LF # send message to log file
+    echo "$1" >> $LF # send message to log file
     exit "${2:-1}"  # Return a code specified by $2 or 1 by default.
 }
 
@@ -121,7 +121,18 @@ if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
 mkdir $tmpdir
 touch $LF
 
+echo "Logfife for command: " >> $LF
+echo $0 $@ >> $LF
+echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
+echo "" >> $LF
 
+#------------- Check dependencies ----------------#
+
+command -v fsl > /dev/null 2>&1 || { error_exit "ERROR: FSL required, but not found (http://fsl.fmrib.ox.ac.uk/fsl). Aborting."; } 
+
+if [ "$method" = "restore" ] ; then
+  command -v modelfit > /dev/null 2>&1 || { error_exit "ERROR: CAMINO required for RESTORE, but not found (http://camino.cs.ucl.ac.uk). Aborting."; } 
+fi
 
 #------------- verifying inputs ----------------#
 
@@ -152,12 +163,6 @@ if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw wo
 
 
 #-------------- fitting the tensor ------------------#
-
-echo "Logfife for command: " >> $LF
-echo $0 $@ >> $LF
-echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
-echo "" >> $LF
-
 
 dtidim4=`fslval $data dim4`
 s0_count=`cat $bval | tr ' ' '\n' | grep -c ^0`

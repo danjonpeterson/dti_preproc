@@ -93,9 +93,9 @@ T () {                      # main shell commands are run through here
 }
 
 error_exit (){      
-    echo "$1" >&2     # Send message to stderr
-    echo "$1" > $LF   # send message to log file
-    exit "${2:-1}"    # Return a code specified by $2 or 1 by default.
+    echo "$1" >&2      # Send message to stderr
+    echo "$1" >> $LF   # send message to log file
+    exit "${2:-1}"     # Return a code specified by $2 or 1 by default.
 }
 
 test_varimg (){       # test if a string is a valid image file
@@ -120,7 +120,10 @@ if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
 mkdir $tmpdir
 touch $LF
 
-
+echo "Logfife for command: " >> $LF
+echo $0 $@ >> $LF
+echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
+echo "" >> $LF
 
 #------------- verifying inputs ----------------#
 
@@ -148,13 +151,12 @@ if [ "$te" = "PARSE_ERROR" ]; then
  error_exit "ERROR: TE not set"
 fi
 
+#------------- Check dependencies ----------------#
+
+command -v fsl > /dev/null 2>&1 || { error_exit "ERROR: FSL required, but not found (http://fsl.fmrib.ox.ac.uk/fsl). Aborting."; } 
+
 
 #------------- Distortion correction using fieldmap----------------#
-
-echo "Logfife for command: " >> $LF
-echo $0 $@ >> $LF
-echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
-echo "" >> $LF
 
 ## copy phase and magnitude image to temporary directory
 T fslmaths $dph $tmpdir/native_fmap_ph

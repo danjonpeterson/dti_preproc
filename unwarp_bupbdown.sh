@@ -62,7 +62,7 @@ T () {    # main shell commands are run through here
 
 error_exit (){      
     echo "$1" >&2   # Send message to stderr
-    echo "$1" > $LF # send message to log file
+    echo "$1" >> $LF # send message to log file
     exit "${2:-1}"  # Return a code specified by $2 or 1 by default.
 }
 
@@ -106,8 +106,6 @@ if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
 mkdir $tmpdir
 touch $LF
 
-
-
 ## make the output directory
 T mkdir -p $outdir
 
@@ -133,6 +131,11 @@ if [ `test_varfile $bval` -eq 0 ] && [ -z "$S0_count" ]; then
  T -e "ERROR: no valid b-value file, nor S0 count"; 
  usage_exit
 fi
+
+#------------- Check dependencies ----------------#
+
+command -v fsl > /dev/null 2>&1 || { error_exit "ERROR: FSL required, but not found (http://fsl.fmrib.ox.ac.uk/fsl). Aborting."; } 
+
 
 #--------- Distortion correction using blip up-blip down S0 images-------#
 
