@@ -6,19 +6,19 @@ usage_exit() {
   Fit the tensor to diffusion data
 
   Example Usage:
-  
+
     fit_tensor.sh -k out/mc_unwarped_raw_diffusion.nii.gz -b bval.txt -r bvec.txt -M brain_mask.nii.gz
 
     Required:
     -k <img>    : DTI 4D data
     -b <bvals.txt> : a text file containing a list of b-values
     -r <bvecs.txt> : a text file containing a list of b-vectors
-    -M <img>       : mask file for diffusion images 
+    -M <img>       : mask file for diffusion images
 
-    Option: 
+    Option:
     -s <number>       : noise level for restore
                         (default: calculate based on linear tensor residuals)
-    -f                : use dtifit instead of RESTORE in camino 
+    -f                : use dtifit instead of RESTORE in camino
     -o <dir>          : output directory
     -F                : fast mode for testing (minimal iterations)
     -E                : don't run the commands, just echo them
@@ -31,46 +31,50 @@ EOF
 method=restore
 sigma=CALCULATE
 data="PARSE_ERROR_data"
-tmpdir=temp-fit_tensor              
-LF=$tmpdir/fit_tensor.log           # default log filename
 bval="PARSE_ERROR_bval"             # b-values file (in FSL format)
 bvec="PARSE_ERROR_vec"              # b-vectors file (in FSL format)
-mask="PARSE_ERROR_mask"             # brain mask file 
+mask="PARSE_ERROR_mask"             # brain mask file
 outdir=.                            # output directory
-generate_report=y                   # generate a report 
+generate_report=y                   # generate a report
 mode=normal
-reportdir=$tmpdir/report            # directory for html report
 scriptdir=`dirname $0`
 
 #------------- Parse Parameters  --------------------#
 [ "$4" = "" ] && usage_exit
 
-while getopts k:b:r:M:o:s:FfE OPT
+tmpdir=temp-fit_tensor
+
+while getopts k:b:r:M:o:s:T:FfE OPT
  do
- case "$OPT" in 
-   "k" ) data="$OPTARG";; 
+ case "$OPT" in
+   "k" ) data="$OPTARG";;
    "b" ) bval="$OPTARG";;
    "r" ) bvec="$OPTARG";;
-   "M" ) mask="$OPTARG";;   
+   "M" ) mask="$OPTARG";;
    "f" ) method=fsl;;
-   "o" ) outdir="$OPTARG";;   
+   "o" ) outdir="$OPTARG";;
    "s" ) sigma="$OPTARG";;
+   "T" ) tmpdir=${OPTARG}${tmpdir};;
    "F" ) fast_testing=y;;
    "E" ) mode=echo;;
      * ) usage_exit;;
  esac
 done;
 
+# Some things can't be set until $tmpdir is:
+LF=$tmpdir/fit_tensor.log           # default log filename
+reportdir=$tmpdir/report            # directory for html report
+
 
 #------------- Utility functions ----------------#
 
 T () {
 
- E=0 
- if [ "$1" = "-e" ] ; then  # just outputting and logging a message with T -e 
-  E=1; shift  
+ E=0
+ if [ "$1" = "-e" ] ; then  # just outputting and logging a message with T -e
+  E=1; shift
  fi
- 
+
  R=0
  if [ "$1" = "-r" ] ; then  # command has redirects and/or pipes
   E=1; R=1; shift           # don't run it again
@@ -80,18 +84,18 @@ T () {
 
  echo "$cmd" | tee -a $LF   # read the command into the console, and the log file
 
- if [ "$R" = "1" ] && [ "$mode" != "echo" ] ; then 
+ if [ "$R" = "1" ] && [ "$mode" != "echo" ] ; then
   eval $cmd | tee -a $LF    # workaround for redirects and pipes. Stderr is not redirected to logfile
  fi
 
- if [ "$E" != "1" ] && [ "$mode" != "echo" ] ; then 
+ if [ "$E" != "1" ] && [ "$mode" != "echo" ] ; then
   $cmd 2>&1 | tee -a $LF    # run the command. read the output and the error messages to the log file
  fi
 
  echo  | tee -a $LF         # write an empty line to the console and log file
 }
 
-error_exit (){      
+error_exit (){
     echo "$1" >&2   # Send message to stderr
     echo "$1" >> $LF # send message to log file
     exit "${2:-1}"  # Return a code specified by $2 or 1 by default.
@@ -128,10 +132,10 @@ echo "" >> $LF
 
 #------------- Check dependencies ----------------#
 
-command -v fsl > /dev/null 2>&1 || { error_exit "ERROR: FSL required, but not found (http://fsl.fmrib.ox.ac.uk/fsl). Aborting."; } 
+command -v fsl > /dev/null 2>&1 || { error_exit "ERROR: FSL required, but not found (http://fsl.fmrib.ox.ac.uk/fsl). Aborting."; }
 
 if [ "$method" = "restore" ] ; then
-  command -v modelfit > /dev/null 2>&1 || { error_exit "ERROR: CAMINO required for RESTORE, but not found (http://camino.cs.ucl.ac.uk). Aborting."; } 
+  command -v modelfit > /dev/null 2>&1 || { error_exit "ERROR: CAMINO required for RESTORE, but not found (http://camino.cs.ucl.ac.uk). Aborting."; }
 fi
 
 #------------- verifying inputs ----------------#
@@ -142,14 +146,14 @@ else
   dtidim4=`fslval $data dim4`
 fi
 
-if [ `test_varimg $mask` -eq 0 ]; then 
- error_exit "ERROR: cannot find mask image: $mask" 
+if [ `test_varimg $mask` -eq 0 ]; then
+ error_exit "ERROR: cannot find mask image: $mask"
 fi
 
 if [ `test_varfile $bvec` -eq 0 ]; then error_exit "ERROR: $bvec is not a valid bvec file"; fi
 
 bvecl=`cat $bvec | awk 'END{print NR}'`
-bvecw=`cat $bvec | wc -w` 
+bvecw=`cat $bvec | wc -w`
 if [ $bvecl != 3 ]; then error_exit "ERROR: bvecs file contains $bvecl lines, it should be 3 lines, each for x, y, z"; fi
 if [ "$bvecw" != "`expr 3 \* $dtidim4`" ]; then error_exit "ERROR: bvecs file contains $bvecw words, it should be 3 x $dtidim4 = `expr 3 \* $dtidim4` words"; fi
 
@@ -157,7 +161,7 @@ if [ `test_varfile $bval` -eq 0 ]; then error_exit "ERROR: $bval is not a valid 
 
 bvall=`cat $bval | awk 'END{print NR}'`; bvalw=`cat $bval | wc -w`
 if [ $bvall != 1 ]; then error_exit "ERROR: bvals file contains $bvall lines, it should be 1 lines"; fi
-if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw words, it should be $dtidim4 words"; fi 
+if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw words, it should be $dtidim4 words"; fi
 
 
 
@@ -174,7 +178,7 @@ if [ "$fast_testing" = "y" ]; then
 fi
 
 if [ "$method" = "fsl" ] ; then
- T dtifit -k $data -o $tmpdir/dti -b $bval -r $bvec -m $mask --sse --save_tensor --wls 
+ T dtifit -k $data -o $tmpdir/dti -b $bval -r $bvec -m $mask --sse --save_tensor --wls
 fi
 
 if [ "$method" = "restore" ] ; then
@@ -190,11 +194,11 @@ if [ "$method" = "restore" ] ; then
 
   ## square root of the variance of the noise is sigma
   T fslmaths $tmpdir/noise_map -sqrt $tmpdir/sigma_map
- 
+
   ## get median of sigma map
   T fslstats $tmpdir/sigma_map -P 50
   sigma=`fslstats $tmpdir/sigma_map -P 50`
- fi 
+ fi
 
  ## do the fitting.
 
@@ -267,7 +271,7 @@ fi
  T imcp $tmpdir/dti_FA $tmpdir/dti_MD $tmpdir/dti_tensor $tmpdir/dti_L1 $tmpdir/dti_L2 $tmpdir/dti_L3 $tmpdir/dti_V1 $tmpdir/dti_V2 $tmpdir/dti_V3 $tmpdir/dti_S0 $outdir/
 
 
-if [ "$generate_report" != "n" ] ; then 
+if [ "$generate_report" != "n" ] ; then
  T $scriptdir/fit_tensor_report.sh -t $tmpdir -r $reportdir -o $outdir -k $data -m $method -n $s0_count
 fi
 
