@@ -234,10 +234,10 @@ elif [ "$method" = "fugue" ]; then
   T -e "Unwarping distortions based on an acquired fieldmap"
 
   T $scriptdir/motion_correct.sh -k $diffusion -b $bval -r $bvec -o $outdir \
-    -M $mask $other_opts
+    -M $mask $tflag $other_opts
 
   T $scriptdir/unwarp_fieldmap.sh -k $outdir/mc_$diffusion -f $dph -m $mag \
-    -M $mask -p $mag_mask -o $outdir -s $SL -t $esp -e $te  $other_opts
+    -M $mask -p $mag_mask -o $outdir -s $SL -t $esp -e $te $tflag $other_opts
 
   diffusion=$outdir/unwarped_mc_$diffusion
 
