@@ -1,13 +1,13 @@
 #! /bin/sh
 
 #example usage
-#motion_correct_report.sh -t temp-motion_correct -r report-motion_correct -o dti_v2 -k DTI_64.nii.gz 
+#motion_correct_report.sh -t temp-motion_correct -r report-motion_correct -o dti_v2 -k DTI_64.nii.gz
 
 #---------variables---------#
 tmpdir=temp-motion_correct                 # name of directory for intermediate files
 method=not_entered
 reportdir=motion_correct_report	           # report dir
-logfile_name=motion_correct_report.log    # Log file 
+logfile_name=motion_correct_report.log    # Log file
 outdir=.
 dti=DTI_64.nii.gz
 scale_and_skew=n
@@ -18,12 +18,16 @@ scriptdir=`dirname $0`
 usage_exit() {
       cat <<EOF
 
-  Generates report for motion and eddy current correction 
+  Generates report for motion and eddy current correction
 
-  Usage:   
-  
-    $CMD -t <directory with intermediade files from unwarp_fieldmap> -r <directory to put the generated reports> -o <output directory> -k <input 4D dti file> -m method -i <index file if using topup>
+  Usage:
 
+    $CMD -t <directory with intermediate files from unwarp_fieldmap>
+    -r <directory to put the generated reports>
+    -o <output directory>
+    -k <input 4D dti file>
+    -m method
+    -i <index file if using topup>
 
 EOF
     exit 1;
@@ -32,22 +36,22 @@ EOF
 
 T () {
 
- E=0 
- if [ "$1" = "-e" ] ; then  # just outputting and logging a message with T -e 
-  E=1; shift  
+ E=0
+ if [ "$1" = "-e" ] ; then  # just outputting and logging a message with T -e
+  E=1; shift
  fi
- 
+
  cmd="$*"
  echo $* | tee -a $LF       # read the command into the console, and the log file
 
- if [ "$E" != "1" ] ; then 
+ if [ "$E" != "1" ] ; then
   $cmd 2>&1 | tee -a $LF    # run the command. read the output into a the log file. Stderr is not directed to the logfile
  fi
 
  echo  | tee -a $LF         # write an empty line to the console and log file
 }
 
-error_exit (){      
+error_exit (){
     echo "$1" >&2      # Send message to stderr
     echo "$1" >> $LF   # send message to log file
     exit "${2:-1}"     # Return a code specified by $2 or 1 by default.
@@ -64,8 +68,8 @@ threecolumnmeansd () {
 
 while getopts t:r:s:o:k:m:i: OPT
  do
- case "$OPT" in 
-   "t" ) tmpdir="$OPTARG";; 
+ case "$OPT" in
+   "t" ) tmpdir="$OPTARG";;
    "r" ) reportdir="$OPTARG";;
    "o" ) outdir="$OPTARG";;
    "k" ) dti="$OPTARG";;
@@ -80,19 +84,19 @@ done;
 LF=$reportdir/$logfile_name
 RF=$reportdir/motion_correct_report
 
-if [ -e $reportdir ]; then /bin/rm -Rf $reportdir;fi
+if [ -e $reportdir ]; then /bin/rm -Rf $reportdir; fi
 mkdir -p $reportdir
 
 #------------- Check dependencies ----------------#
 
-command -v fsl > /dev/null 2>&1 || { error_exit "ERROR: FSL required for report, but not found (http://fsl.fmrib.ox.ac.uk/fsl). Aborting."; } 
-command -v whirlgif > /dev/null 2>&1 || { error_exit "ERROR: whirlgif required for report, but not found. Aborting."; } 
-command -v pandoc > /dev/null 2>&1 || { error_exit "ERROR: pandoc required for report, but not found (http://pandoc.org/). Aborting."; } 
-command -v R > /dev/null 2>&1 || { error_exit "ERROR: R required for report, but not found (https://www.r-project.org). Aborting."; } 
+command -v fsl > /dev/null 2>&1 || { error_exit "ERROR: FSL required for report, but not found (http://fsl.fmrib.ox.ac.uk/fsl). Aborting."; }
+command -v whirlgif > /dev/null 2>&1 || { error_exit "ERROR: whirlgif required for report, but not found. Aborting."; }
+command -v pandoc > /dev/null 2>&1 || { error_exit "ERROR: pandoc required for report, but not found (http://pandoc.org/). Aborting."; }
+command -v R > /dev/null 2>&1 || { error_exit "ERROR: R required for report, but not found (https://www.r-project.org). Aborting."; }
 
 rmarkdown_test=`R -q -e "\"rmarkdown\" %in% rownames(installed.packages())" | grep 1`
-if [ "$rmarkdown_test" != "[1] TRUE" ]; then error_exit "ERROR: R package 'rmarkdown' required for report, but not found. 
-Try running this command in R: 
+if [ "$rmarkdown_test" != "[1] TRUE" ]; then error_exit "ERROR: R package 'rmarkdown' required for report, but not found.
+Try running this command in R:
 install.packages(\"rmarkdown\") " ;fi
 
 #------------- Begin report  --------------------#
@@ -102,15 +106,15 @@ echo "title: QA report for correction of subject motion and eddy-current induced
 echo "output:"           >> ${RF}.Rmd
 echo "  html_document: " >> ${RF}.Rmd
 echo "    keep_md: yes " >> ${RF}.Rmd
-echo "    toc: yes "     >> ${RF}.Rmd 
-echo "    force_captions: TRUE " >> ${RF}.Rmd 
+echo "    toc: yes "     >> ${RF}.Rmd
+echo "    force_captions: TRUE " >> ${RF}.Rmd
 echo "---">> ${RF}.Rmd
 
 echo \# MOTION CORRECTION REPORT  >> ${RF}.Rmd
 echo "__motion correction method: $method __\n" >> ${RF}.Rmd
 
 
-## framewise displacement 
+## framewise displacement
 
 dtidim4=`echo $tmpdir/dti_ecc.mat/* | wc -w`
 echo "__number of volumes: $dtidim4 __\n" >> ${RF}.Rmd
@@ -122,18 +126,18 @@ while [ $i -lt `expr $dtidim4 + 1` ]; do ## loop through DWIs
  # when zero-indexed
  i_zi=`expr $i - 1`
  prev_zi=`expr $i - 2`
- 
+
  i_zi_pad=`zeropad $i_zi 4`
  prev_zi_pad=`zeropad $prev_zi 4`
- 
+
  # awk is not zero-indexed
  if [ "$method" = "eddy_with_topup" ]; then
   index_entry=`cat $index | awk -v n=$i '{print $n}'`
   prev_index_entry=`cat $index | awk -v n=$prev '{print $n}'`
  fi
-  
+
  # skip seams in the index file
- if [ "$method" != "eddy_with_topup" ] || [ "$index_entry" = "$prev_index_entry" ]; then 
+ if [ "$method" != "eddy_with_topup" ] || [ "$index_entry" = "$prev_index_entry" ]; then
   # MC xform matrices ARE zero-indexed
 #  T rmsdiff $tmpdir/dti_ecc.mat/MAT_$prev_zi_pad $tmpdir/dti_ecc.mat/MAT_$i_zi_pad $dti
   echo `rmsdiff $tmpdir/dti_ecc.mat/MAT_$prev_zi_pad $tmpdir/dti_ecc.mat/MAT_$i_zi_pad $dti` >> $reportdir/framewise_displacement.par
