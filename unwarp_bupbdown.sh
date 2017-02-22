@@ -97,7 +97,7 @@ while getopts k:a:M:so:r:c:b:n:YT:EF OPT
    "c" ) configfile="$OPTARG";;
    "b" ) bval="$OPTARG";;
    "n" ) S0_count="$OPTARG";;
-   "Y" ) direction="-y";;
+   "Y" ) direction="y-";;
    "T" ) tmpdir=${OPTARG}${tmpdir};;
    "E" ) mode=echo;;
    "F" ) fast_testing=y;;

@@ -224,7 +224,7 @@ if [ "$method" = "topup" ]; then
   T -e "Unwarping distortions based on blipup-blipbdown data"
 
   T $scriptdir/unwarp_bupbdown.sh -k $diffusion -a $acqparams -M $mask \
-    -c $configfile -o $outdir -b $bval $tflag $other_opts
+    -c $configfile -o $outdir -b $bval $tflag $direction_flag $other_opts
 
   T $scriptdir/motion_correct.sh -k $diffusion -b $bval -r $bvec -M $mask \
     -i $index -a $acqparams -t ${tfix}temp-unwarp_bupbdown/topup_out \
@@ -236,8 +236,8 @@ elif [ "$method" = "fugue" ]; then
 
   T -e "Unwarping distortions based on an acquired fieldmap"
 
-  # T $scriptdir/motion_correct.sh -k $diffusion -b $bval -r $bvec -o $outdir \
-  #   -M $mask $tflag $other_opts
+  T $scriptdir/motion_correct.sh -k $diffusion -b $bval -r $bvec -o $outdir \
+    -M $mask $tflag $other_opts
 
   T $scriptdir/unwarp_fieldmap.sh -k $outdir/mc_$diffusion -f $dph -m $mag \
     -M $mask -p $mag_mask -o $outdir -s $SL -t $esp -e $te $tflag \
