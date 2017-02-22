@@ -8,6 +8,7 @@ The main features of this package are:
 * Automatic generation of QA reports as standalone .html files
 * Itegrated motion correction and EPI unwarping (both fieldmap-based unwarping and “blip-up, blip-down” unwarping)
 * Support for processing pipelines based on GNU make
+* Specify direction of unwarping. Supported directions are `y` (default) and `y-`, which is set by adding the `-Y` flag to `dti_preproc.sh` or the unwarp scripts.
 
 These scripts are intended implement ‘state of the art’ preprocessing options by default. This includes motion correction with FSL’s ‘eddy’, with rotation of the b-vectors, and tensor estimation using RESTORE.
 
@@ -19,7 +20,9 @@ These scripts are intended implement ‘state of the art’ preprocessing option
 
 ##Make-Based Pipeline:
 
-   These scripts can be integrated into a processing pipeline based on ‘GNU Make’, using the approach described in [Askren et al 2016](http://journal.frontiersin.org/article/10.3389/fninf.2016.00002/full). **example_makefile.mk** can serve as a template, but will need to be modified for your particular environment
+   These scripts can be integrated into a processing pipeline based on ‘GNU Make’, using the approach described in [Askren et al. 2016](http://journal.frontiersin.org/article/10.3389/fninf.2016.00002/full). **example_makefile.mk** can serve as a template, but will need to be modified for your particular environment.
+
+   To help with functionality in make-based pipelines, there is the addtional flag `-T <name>` which allows you to supply a prefix to the temp directory to make sure two directiories don't end up with the same name while make is running concurrently.
 
 
 ##Files in the Repository
