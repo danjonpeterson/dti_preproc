@@ -66,7 +66,7 @@ while getopts k:f:m:M:u:s:t:e:o:r:p:nsYT:EF OPT
    "s" ) generate_report=0;;
    "r" ) reportdir="$OPTARG";;
    "p" ) mag_mask="$OPTARG";;
-   "Y" ) direction="-y";;
+   "Y" ) direction="y-";;
    "T" ) tmpdir=${OPTARG}${tmpdir};;
    "E" ) mode=echo;;
    "F" ) fast_testing=y;;

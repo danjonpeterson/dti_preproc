@@ -49,7 +49,7 @@ other_eddy_opts=""
 
 tmpdir=temp-motion_correct        # name of directory for intermediate files
 
-while getopts k:b:r:M:N:o:i:a:t:n:T:EF OPT
+while getopts k:b:r:M:N:o:i:a:t:n:YT:EF OPT
  do
  case "$OPT" in
    "k" ) dti="$OPTARG";;
