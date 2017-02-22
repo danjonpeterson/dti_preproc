@@ -254,7 +254,7 @@ if [ "$bvec_rotation" = "y" ]; then
 fi
 
 T $scriptdir/fit_tensor.sh -k $diffusion -b $bval -r $bvec \
-  -M $outdir/unwarped_brain_mask.nii.gz -o $outdir $tflag $other_opts
+  -M $outdir/unwarped_brain_mask.nii.gz -o $outdir -f $tflag $other_opts
 
 T -e "Inspect results with the following command:"
 T -e "firefox $outdir/*html "

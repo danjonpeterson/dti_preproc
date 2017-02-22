@@ -121,11 +121,11 @@ mkdir -p $outdir
 
 
 ## clear, then make the temporary directory
-if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir;fi
+if [ -e $tmpdir ]; then /bin/rm -Rf $tmpdir; fi
 mkdir $tmpdir
 touch $LF
 
-echo "Logfife for command: " >> $LF
+echo "Logfile for command: " >> $LF
 echo $0 $@ >> $LF
 echo "Run on " `date` "by user " $USER " on machine " `hostname`  >> $LF
 echo "" >> $LF
