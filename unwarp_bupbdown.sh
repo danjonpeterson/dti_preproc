@@ -23,6 +23,7 @@ brain_mask.nii.gz -b bval.txt
     -s               : no not generate HTML report
     -o <directory>   : output directory (defaut: current working directory)
     -c <file.cnf>    : topup config file
+    -Y               : distortion is negative "-y"
     -T <dir>         : temp directory prefix
     -E               : don't run the commands, just echo them
     -F               : fast mode for testing (minimal iterations)
@@ -84,7 +85,7 @@ test_varfile (){  # test if a string is a valid file
 
 tmpdir=temp-unwarp_bupbdown
 
-while getopts k:a:M:so:r:c:b:n:T:EF OPT
+while getopts k:a:M:so:r:c:b:n:YT:EF OPT
  do
  case "$OPT" in
    "k" ) diffusion="$OPTARG";;
@@ -96,6 +97,7 @@ while getopts k:a:M:so:r:c:b:n:T:EF OPT
    "c" ) configfile="$OPTARG";;
    "b" ) bval="$OPTARG";;
    "n" ) S0_count="$OPTARG";;
+   "Y" ) direction="-y";;
    "T" ) tmpdir=${OPTARG}${tmpdir};;
    "E" ) mode=echo;;
    "F" ) fast_testing=y;;

@@ -24,6 +24,8 @@ usage_exit() {
     -s          : no not generate HTML report
     -o          : output directory (defaut: current working directory)
     -r          : report directory
+    -Y          : distortion is negative "-y"
+    -T <dir>         : temp directory prefix
     -E          : don't run the commands, just echo them
     -F          : fast mode for testing (minimal iterations)
 
@@ -35,13 +37,11 @@ EOF
 sl=10                               # default signal loss threshold
 direction=y                         # distortion direction
 tmpdir=temp-unwarp_fieldmap         # name of directory for intermediate files
-LF=$tmpdir/unwarp_fieldmap.log      # default log filename
 te="PARSE_ERROR"                    # field map TE (ex: 93.46)
 esp="PARSE_ERROR"                   # field map echo spacing (ex: 0.576)
 reg=y                               # coregister between fieldmap and DTI data
 outdir=.                            # put output in PWD
 generate_report=y                   # generate a report
-reportdir=$tmpdir/report            # directory for html report
 mode=normal                         # run mode (normal,fast,echo)
 scriptdir=`dirname $0`              # directory where dti_preproc scripts live
 fast_testing=n                      # run with minimal processing for testing
@@ -50,7 +50,7 @@ fast_testing=n                      # run with minimal processing for testing
 #------------- Parse Parameters  --------------------#
 [ "$4" = "" ] && usage_exit #show help message if fewer than four args
 
-while getopts k:f:m:M:u:s:t:e:o:r:p:nsEF OPT
+while getopts k:f:m:M:u:s:t:e:o:r:p:nsYT:EF OPT
  do
  case "$OPT" in
    "k" ) diffusion="$OPTARG";;
@@ -66,12 +66,18 @@ while getopts k:f:m:M:u:s:t:e:o:r:p:nsEF OPT
    "s" ) generate_report=0;;
    "r" ) reportdir="$OPTARG";;
    "p" ) mag_mask="$OPTARG";;
+   "Y" ) direction="-y";;
+   "T" ) tmpdir=${OPTARG}${tmpdir};;
    "E" ) mode=echo;;
    "F" ) fast_testing=y;;
     * )  usage_exit;;
  esac
 done;
 
+# These assignments have to be made after $tmpdir is set.
+
+LF=$tmpdir/unwarp_fieldmap.log      # default log filename
+reportdir=$tmpdir/report            # directory for html report
 
 #---------------- Utility Functions --------------#
 

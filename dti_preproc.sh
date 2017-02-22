@@ -41,6 +41,7 @@ usage_exit() {
       -s <num>      : % signal loss threshold for fieldmap-based unwarping \
 (default: 10)
       -o <dir>      : output directory (defaut: current working directory)
+      -Y            : distortion direction is negative ("-y"; default: "y")
       -T <dir>      : temp directory prefix
       -E            : don't run the commands, just echo them
       -F            : fast mode for testing (minimal iterations)
@@ -72,12 +73,13 @@ scriptdir=`dirname $0`            # directory where dti_preproc scripts live
 other_opts=""                     # flags to pass onto the sub-commands
 tfix=""                           # prefix to temp directories
 tflag=""                          # flag to called scripts
+direction_flag=""                 # by default, don't send -y to other scripts
 
 #------------- parsing parameters ----------------#
 #show help message if fewer than six args
 if [ "$6" = "" ]; then usage_exit; fi
 
-while getopts k:b:r:M:f:m:e:t:p:q:i:c:s:o:T:EF OPT
+while getopts k:b:r:M:f:m:e:t:p:q:i:c:s:o:YT:EF OPT
  do
  case "$OPT" in
    "k" ) diffusion="$OPTARG";;
@@ -96,6 +98,7 @@ while getopts k:b:r:M:f:m:e:t:p:q:i:c:s:o:T:EF OPT
    "c" ) configfile="$OPTARG";;
    "s" ) SL="$OPTARG";;
    "o" ) outdir="$OPTARG";;
+   "Y" ) direction_flag="-Y";;
    "T" ) tfix="$OPTARG-"
           tflag="-T $tfix" ;;
    "E" ) mode=echo;;
@@ -237,7 +240,9 @@ elif [ "$method" = "fugue" ]; then
     -M $mask $tflag $other_opts
 
   T $scriptdir/unwarp_fieldmap.sh -k $outdir/mc_$diffusion -f $dph -m $mag \
-    -M $mask -p $mag_mask -o $outdir -s $SL -t $esp -e $te $tflag $other_opts
+    -M $mask -p $mag_mask -o $outdir -s $SL -t $esp -e $te $tflag \
+    $other_opts
+
 
   diffusion=$outdir/unwarped_mc_$diffusion
 
