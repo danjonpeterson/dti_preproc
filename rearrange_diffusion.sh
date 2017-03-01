@@ -9,7 +9,7 @@ usage_exit() {
      rearrange_diffusion.sh <4d image> <bvals> <bvecs> <output basename> <permutation vector>
  
    Example: (moves image #15 to the second position):
-     rearrange_diffusion.sh download_diffusion.nii.gz download_bvals.txt download_bvecs.txt rearranged 1 15 \`seq 2 14\` \`seq 16 30\`
+     rearrange_diffusion.sh download_diffusion.nii.gz download_bval.txt download_bvec.txt rearranged 1 15 \`seq 2 14\` \`seq 16 30\`
 
 EOF
     exit 1;
@@ -79,12 +79,12 @@ if [ $bvalw != $dtidim4 ]; then error_exit "ERROR: bvalc file contains $bvalw wo
 #------------- Setting things up ----------------#
 
 rm -f ${output_basename}_diffusion.nii.gz
-rm -f ${output_basename}_bvecs.txt
-rm -f ${output_basename}_bvals.txt
+rm -f ${output_basename}_bvec.txt
+rm -f ${output_basename}_bval.txt
 rm -f ${temp_basename}_*
 
-touch ${temp_basename}_bvecs_{x,y,z}.txt
-touch ${temp_basename}_bvals.txt
+touch ${temp_basename}_bvec_{x,y,z}.txt
+touch ${temp_basename}_bval.txt
 
 #------------- do the rearrangement --------------#
 
@@ -101,11 +101,11 @@ for i in $perm_vector; do
  
  imagelist=`echo $imagelist ${temp_basename}_${izpzi}.nii.gz`
 
- cat $bvalsfile | awk -v n=$i '{print $n}' >> ${temp_basename}_bvals.txt
+ cat $bvalsfile | awk -v n=$i '{print $n}' >> ${temp_basename}_bval.txt
 
- cat $bvecsfile | awk -v n=$i '{if (NR == 1) {print $n}}' >> ${temp_basename}_bvecs_x.txt
- cat $bvecsfile | awk -v n=$i '{if (NR == 2) {print $n}}' >> ${temp_basename}_bvecs_y.txt
- cat $bvecsfile | awk -v n=$i '{if (NR == 3) {print $n}}' >> ${temp_basename}_bvecs_z.txt
+ cat $bvecsfile | awk -v n=$i '{if (NR == 1) {print $n}}' >> ${temp_basename}_bvec_x.txt
+ cat $bvecsfile | awk -v n=$i '{if (NR == 2) {print $n}}' >> ${temp_basename}_bvec_y.txt
+ cat $bvecsfile | awk -v n=$i '{if (NR == 3) {print $n}}' >> ${temp_basename}_bvec_z.txt
 
 done
  
@@ -113,11 +113,11 @@ echo merging images
 
 fslmerge -t ${output_basename}_diffusion.nii.gz $imagelist
 
-echo `cat ${temp_basename}_bvals.txt | tr '\n' ' '` > ${output_basename}_bvals.txt
+echo `cat ${temp_basename}_bval.txt | tr '\n' ' '` > ${output_basename}_bval.txt
 
-echo `cat ${temp_basename}_bvecs_x.txt | tr '\n' ' '` > ${output_basename}_bvecs.txt
-echo `cat ${temp_basename}_bvecs_y.txt | tr '\n' ' '` >> ${output_basename}_bvecs.txt
-echo `cat ${temp_basename}_bvecs_z.txt | tr '\n' ' '` >> ${output_basename}_bvecs.txt
+echo `cat ${temp_basename}_bvec_x.txt | tr '\n' ' '` > ${output_basename}_bvec.txt
+echo `cat ${temp_basename}_bvec_y.txt | tr '\n' ' '` >> ${output_basename}_bvec.txt
+echo `cat ${temp_basename}_bvec_z.txt | tr '\n' ' '` >> ${output_basename}_bvec.txt
 
 
 ## Clean up
