@@ -10,14 +10,14 @@
 
 input=$1
 
-#output=${input%%.*}_movie.gif
-output=$2
+output=${input%%.*}_movie.gif
+#output=$2
 
 tmpdir=`mktemp -d`
 SCRIPTDIR=`dirname $0`
 
 echo splitting images
-fslsplit $input $tmpdir/volume_ -t
+fsl5.0-fslsplit $input $tmpdir/volume_ -t
 
 echo making individual gifs
 for s in $tmpdir/volume*.nii.gz ; do 
@@ -25,6 +25,6 @@ for s in $tmpdir/volume*.nii.gz ; do
 done
 
 echo making the movie
-whirlgif -o $output -loop -time 10 $tmpdir/volume*.nii.gz.gif
+gifsicle -o $output -l -d 10 $tmpdir/volume*.nii.gz.gif
 
 rm -rf $tmpdir
