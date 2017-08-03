@@ -8,11 +8,11 @@ shift 2
 
 tmpdir=`mktemp -d`
 
-slicer $in -s 3 $* -x 0.35 $tmpdir/sla.png -x 0.45 $tmpdir/slb.png -x 0.55 $tmpdir/slc.png -x 0.65 $tmpdir/sld.png \
+fsl5.0-slicer $in -s 3 $* -x 0.35 $tmpdir/sla.png -x 0.45 $tmpdir/slb.png -x 0.55 $tmpdir/slc.png -x 0.65 $tmpdir/sld.png \
                    -y 0.35 $tmpdir/sle.png -y 0.45 $tmpdir/slf.png -y 0.55 $tmpdir/slg.png -y 0.65 $tmpdir/slh.png \
                    -z 0.35 $tmpdir/sli.png -z 0.45 $tmpdir/slj.png -z 0.55 $tmpdir/slk.png -z 0.65 $tmpdir/sll.png
 
-pngappend $tmpdir/sli.png + $tmpdir/slj.png + $tmpdir/slk.png + $tmpdir/sll.png - \
+fsl5.0-pngappend $tmpdir/sli.png + $tmpdir/slj.png + $tmpdir/slk.png + $tmpdir/sll.png - \
 $tmpdir/sla.png + $tmpdir/slb.png + $tmpdir/slc.png + $tmpdir/sld.png - \
 $tmpdir/sle.png + $tmpdir/slf.png + $tmpdir/slg.png + $tmpdir/slh.png $out
 
