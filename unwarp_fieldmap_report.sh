@@ -80,7 +80,9 @@ mkdir -p $reportdir
 #------------- Check dependencies ----------------#
 
 command -v fsl > /dev/null 2>&1 || { error_exit "ERROR: FSL required for report, but not found (http://fsl.fmrib.ox.ac.uk/fsl). Aborting."; } 
-command -v whirlgif > /dev/null 2>&1 || { error_exit "ERROR: whirlgif required for report, but not found. Aborting."; } 
+
+command -v whirlgif > /dev/null 2>&1 || command -v gifsicle > /dev/null 2>&1 || { error_exit "ERROR: either whirlgif or gifsicle required for report, but neither found. Aborting."; }
+
 command -v pandoc > /dev/null 2>&1 || { error_exit "ERROR: pandoc required for report, but not found (http://pandoc.org/). Aborting."; } 
 command -v R > /dev/null 2>&1 || { error_exit "ERROR: R required for report, but not found (https://www.r-project.org). Aborting."; } 
 
@@ -136,14 +138,24 @@ echo "![](unwarp_shift+mag.gif) \n"  >> ${RF}.Rmd
 T flirt -in $tmpdir/rewarped_fmap_mag_brain_siglossed -ref $tmpdir/native_S0_brain -applyxfm -init $tmpdir/fieldmap_to_diffusion.mat -o $reportdir/rewarped_mag
 T $scriptdir/image_to_gif.sh $reportdir/rewarped_mag $reportdir/coregistered_rewarped_fmap_mag_brain_siglossed.gif
 T $scriptdir/image_to_gif.sh $tmpdir/native_S0 $reportdir/native_S0.gif
-T whirlgif -o $reportdir/native_movie2.gif -loop -time 50 $reportdir/native_S0.gif $reportdir/coregistered_rewarped_fmap_mag_brain_siglossed.gif
+
+if command -v whirlgif > /dev/null 2>&1 ; then
+  T whirlgif -o $reportdir/native_movie2.gif -loop -time 50 $reportdir/native_S0.gif $reportdir/coregistered_rewarped_fmap_mag_brain_siglossed.gif
+else
+  T gifsicle -o $reportdir/native_movie2.gif -l -d 50 $reportdir/native_S0.gif $reportdir/coregistered_rewarped_fmap_mag_brain_siglossed.gif
+fi
 
 echo \#\# Registration of brain images between original b=0 and rewarped magnitude image  >> ${RF}.Rmd
 echo "![](native_movie2.gif) \n"  >> ${RF}.Rmd
 
 T $scriptdir/image_to_gif.sh $tmpdir/unwarped_S0 $reportdir/unwarped_S0.gif
 T $scriptdir/image_to_gif.sh $tmpdir/native_S0 $reportdir/native_S0.gif
-T whirlgif -o $reportdir/S0_movie2.gif -loop -time 50 $reportdir/unwarped_S0.gif $reportdir/native_S0.gif
+
+if command -v whirlgif > /dev/null 2>&1 ; then
+  T whirlgif -o $reportdir/S0_movie2.gif -loop -time 50 $reportdir/unwarped_S0.gif $reportdir/native_S0.gif
+else
+  T gifsicle -o $reportdir/S0_movie2.gif -l -d 50 $reportdir/unwarped_S0.gif $reportdir/native_S0.gif
+fi
 
 echo \#\# Uncorrected and corrected b=0 images  >> ${RF}.Rmd
 echo "![](S0_movie2.gif) \n"  >> ${RF}.Rmd
@@ -151,7 +163,12 @@ echo "![](S0_movie2.gif) \n"  >> ${RF}.Rmd
 T fslstats $tmpdir/coregistered_fmap_mag_brain.nii.gz -P 20 -P 90
 v=`fslstats $tmpdir/coregistered_fmap_mag_brain.nii.gz -P 20 -P 90`
 T $scriptdir/image_to_gif.sh $tmpdir/coregistered_fmap_mag $reportdir/coregistered_fmap_mag.gif -i $v
-T whirlgif -o $reportdir/movie3.gif -loop -time 50  $reportdir/unwarped_S0.gif $reportdir/coregistered_fmap_mag.gif 
+
+if command -v whirlgif > /dev/null 2>&1 ; then
+  T whirlgif -o $reportdir/movie3.gif -loop -time 50  $reportdir/unwarped_S0.gif $reportdir/coregistered_fmap_mag.gif
+else
+  T gifsicle -o $reportdir/movie3.gif -l -d 50  $reportdir/unwarped_S0.gif $reportdir/coregistered_fmap_mag.gif
+fi
 
 echo \#\# Corrected b=0 images and the fieldmap magnitude image >> ${RF}.Rmd
 echo "![](movie3.gif) \n"  >> ${RF}.Rmd

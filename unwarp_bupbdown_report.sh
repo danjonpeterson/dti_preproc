@@ -72,7 +72,9 @@ mkdir -p $reportdir
 #------------- Check dependencies ----------------#
 
 command -v fsl > /dev/null 2>&1 || { error_exit "ERROR: FSL required for report, but not found (http://fsl.fmrib.ox.ac.uk/fsl). Aborting."; } 
-command -v whirlgif > /dev/null 2>&1 || { error_exit "ERROR: whirlgif required for report, but not found. Aborting."; } 
+
+command -v whirlgif > /dev/null 2>&1 || command -v gifsicle > /dev/null 2>&1 || { error_exit "ERROR: either whirlgif or gifsicle required for report, but neither found. Aborting."; }
+
 command -v pandoc > /dev/null 2>&1 || { error_exit "ERROR: pandoc required for report, but not found (http://pandoc.org/). Aborting."; } 
 command -v R > /dev/null 2>&1 || { error_exit "ERROR: R required for report, but not found (https://www.r-project.org). Aborting."; } 
 
