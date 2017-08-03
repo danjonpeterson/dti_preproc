@@ -75,6 +75,7 @@ These are called by the main scripts but may be invoked on their own
 
 ## TO DO
 * Correct min/max display info in header of output images
+* add [**BIDS**](http://bids.neuroimaging.io/) compatibility
 
 ###### Add to report
 * versions of fsl, camino, etc
