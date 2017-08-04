@@ -67,6 +67,7 @@ These are called by the main scripts but may be invoked on their own
 * [**imagemagick**](http://www.imagemagick.org/script/index.php)
 * [**whirlgif**](http://www.astro.auth.gr/~simos/cgi-bin/PDEs/Hyperbolic/whirlgif.c) OR [**Gifsicle**](https://www.lcdf.org/gifsicle/)
 * [**fsl**](http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation) 
+  ( if installed with neurodebian, make sure you read [this](http://neuro.debian.net/debian/extracts/fsl/README.Debian) )
 * [**camino**](http://web4.cs.ucl.ac.uk/research/medic/camino/pmwiki/pmwiki.php?n=Main.Guide)
 * [**R**](https://www.r-project.org/) (with package *rmarkdown*)
 * [**pandoc**](http://pandoc.org/installing.html)
