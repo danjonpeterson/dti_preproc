@@ -17,7 +17,11 @@ i=0
 with open(parFileName,"r") as ifile:
     for line in ifile:
         #print line
-        numeric_array=map(float,line.split())
+
+        #old
+        #numeric_array=map(float,line.split())
+        
+        numeric_array=list(map(float,line.split()))
 
         Xtrans=numeric_array[0]
         Ytrans=numeric_array[1]
